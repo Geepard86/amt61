@@ -30,7 +30,7 @@ h2{font-size:54px;margin:0 0 10px}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="config.js"></script>
 <script>
-const sb=supabase.createClient(CFG.url,CFG.key),V=document.getElementById('v'),$=i=>document.getElementById(i);
+const sb=supabase.createClient(CFG.url,CFG.key,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}}),V=document.getElementById('v'),$=i=>document.getElementById(i);
 const fit=()=>document.getElementById('st').style.transform='translate(-50%,-50%) scale('+Math.min(innerWidth/1920,innerHeight/1080)+')';
 addEventListener('resize',fit);fit();
 const COL=['#c8102e','#1565c0','#d4a017','#2e7d32'],SYM=['▲','◆','●','■'];
@@ -169,7 +169,7 @@ async function lobby(){
 
 (async()=>{
  V.innerHTML='<h2>Lade Fragen …</h2>';
- const r=await sb.from('quiz').select('data').eq('id',1).maybeSingle();
+ const r=await Promise.race([sb.from('quiz').select('data').eq('id',1).maybeSingle(),new Promise(res=>setTimeout(()=>res({error:{message:'Zeitüberschreitung – Supabase antwortet nicht'}}),6000))]);
  if(r.error)showErr('Fragen laden: '+r.error.message);
  Q=r.data&&r.data.data&&r.data.data.categories?r.data.data:await(await fetch('questions.json?'+Date.now())).json();
  lobby()})();

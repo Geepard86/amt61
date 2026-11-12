@@ -22,7 +22,7 @@ input{font:inherit;width:100%;padding:14px;border-radius:12px;border:3px solid #
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="config.js"></script>
 <script>
-const sb=supabase.createClient(CFG.url,CFG.key),A=document.getElementById('app');
+const sb=supabase.createClient(CFG.url,CFG.key,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}}),A=document.getElementById('app');
 const ICONS=['🎅','🤶','🦌','⛄','🎄','🎁','⭐','🔔','🍪','🧝','🕯️','🧦','🥛','❄️','🦃','🍷'];
 const COL=['#c8102e','#1565c0','#d4a017','#2e7d32'],SYM=['▲','◆','●','■'];
 let me=null,g={phase:'lobby',data:{}},icon='',sent={},tm;

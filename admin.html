@@ -98,7 +98,7 @@ specials:[tx('Lieder-/Film-Spezialfrage: Welches Lied oder welcher Film wird hie
 var KEY='amt61-quiz-v1',D,sel={c:0,s:'questions',i:0},blobs=new WeakMap();
 try{D=JSON.parse(localStorage.getItem(KEY))}catch(e){}
 if(!D||!D.categories)D=std();
-var sb=null,pt;try{sb=supabase.createClient(CFG.url,CFG.key)}catch(e){}
+var sb=null,pt;try{sb=supabase.createClient(CFG.url,CFG.key,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}})}catch(e){}
 function st(t){var e=document.getElementById('sbs');if(e)e.textContent=t}
 function push(){if(!sb)return;st('Speichere …');sb.from('quiz').upsert({id:1,data:D}).then(function(r){st(r.error?'⚠ Supabase: '+r.error.message:'☁ In Supabase gespeichert')})}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(D))}catch(e){}if(sb){clearTimeout(pt);pt=setTimeout(push,1200)}}
