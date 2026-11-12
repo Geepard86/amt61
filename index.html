@@ -40,7 +40,7 @@ async function render(){
  if(g.phase==='question'){
   if(sent[d.qkey])return put('<div class="big">✅</div><p>Antwort gesendet!<br>Warte auf die anderen …</p>');
   let h='<div class="bar"><i id="b"></div><div class="q">'+esc(d.text)+'</div>';
-  if(d.type==='mc')h+='<div class="mc">'+d.options.map((o,i)=>'<button data-a="'+i+'" style="background:'+COL[i]+'">'+SYM[i]+'  '+esc(o)+'</button>').join('')+'</div>';
+  if(d.type==='mc')h+='<div class="mc'+(d.options.some(o=>o.length>38)?' l1':'')+'">'+d.options.map((o,i)=>'<button data-a="'+i+'" style="background:'+COL[i]+'"><i>'+SYM[i]+'</i>'+esc(o)+'</button>').join('')+'</div>';
   else h+='<input id="an" '+(d.type==='estimate'?'type="number" step="any" inputmode="decimal" placeholder="Deine Schätzung'+(d.unit?' ('+esc(d.unit)+')':'')+'"':'placeholder="Deine Antwort"')+' autocomplete="off"><button class="go" id="s">Senden</button>';
   put(h);
   const t0=Date.now(),secs=d.secs||20;
