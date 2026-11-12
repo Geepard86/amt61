@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Amt 61 – Quiz-Admin</title>
+<style>
+:root{--bg:#10241c;--card:#1b3a2d;--in:#0c1b15;--red:#c8102e;--gold:#f5c542;--ink:#fff8e7;--mut:#a9c2b4;color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px "Trebuchet MS",Verdana,sans-serif}
+header{padding:14px 22px;display:flex;gap:16px;align-items:center;flex-wrap:wrap;border-bottom:2px solid var(--card)}
+h1{margin:0;font-size:24px;color:var(--gold)}
+main{display:grid;grid-template-columns:minmax(260px,340px) 1fr;gap:16px;padding:16px;align-items:start}
+@media(max-width:800px){main{grid-template-columns:1fr}}
+.pane{background:var(--card);border-radius:14px;padding:14px}
+button{font:inherit;padding:6px 12px;border-radius:8px;border:2px solid var(--gold);background:transparent;color:var(--ink);cursor:pointer}
+button.p{background:var(--red);border-color:var(--red)}
+button.s{padding:1px 7px;font-size:13px}
+input,select,textarea{font:inherit;width:100%;padding:7px 9px;border-radius:8px;border:2px solid #345a49;background:var(--in);color:var(--ink)}
+textarea{min-height:76px;font-family:monospace;font-size:14px}
+label{display:block;margin:10px 0 3px;color:var(--mut);font-size:13px}
+.cat{margin-bottom:12px}
+.cat h3{margin:0 0 4px;font-size:16px;color:var(--gold)}
+.it{display:flex;gap:4px;align-items:center;padding:4px 6px;border-radius:7px;cursor:pointer;font-size:14px}
+.it span.t{flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.it:hover{background:#25483a}.it.on{background:#2f5a49}
+.rank{margin:6px 0;padding:3px 8px;border-radius:7px;background:#12291f;color:var(--gold);font-size:12px;text-align:center}
+.todo{color:#ff5a6e}
+.tag{font-size:11px;padding:1px 6px;border-radius:9px;background:#12291f;color:var(--mut)}
+.g{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.opt{display:flex;gap:8px;align-items:center;margin-top:6px}.opt input[type=radio]{width:auto}
+canvas{max-width:100%;border-radius:10px;background:#000}
+.note{color:var(--mut);font-size:13px;margin:4px 0}
+#res{font-weight:bold;margin-top:6px}
+.steps span{display:inline-block;font-size:30px;margin:2px 6px}
+</style>
+</head>
+<body>
+<header>
+<h1>🎄 Amt 61 – Quiz-Admin</h1>
+<span class="note">Änderungen werden automatisch im Browser gespeichert. Für das Quiz: JSON unten erzeugen und als <b>questions.json</b> ins Repo legen.</span>
+<button id="jbtn" class="p">JSON ein-/ausblenden</button>
+</header>
+<main>
+<div class="pane" id="tree"></div>
+<div>
+<div class="pane" id="ed"></div>
+<div class="pane" id="js" style="margin-top:16px;display:none">
+<div style="display:flex;gap:8px;flex-wrap:wrap">
+<button id="jgen" class="p">JSON erzeugen</button><button id="jload">JSON laden</button><button id="jreset">Auf Standard zurücksetzen</button></div>
+<textarea id="jt" style="min-height:240px;margin-top:8px"></textarea>
+</div>
+</div>
+</main>
+<script>
+(function(){
+var mc=function(t,o,c){return{type:'mc',text:t,options:o,correct:c,timeLimit:20}};
+var es=function(t,a,u){return{type:'estimate',text:t,answer:a,unit:u,timeLimit:25}};
+var tx=function(t,a,r,x){return Object.assign({type:'text',text:t,answers:a,reveal:r||'none',steps:[],timeLimit:15},x||{})};
+var song=function(n){return tx('Lieder-Spezialfrage: Welches Lied ist das? ('+n+')',[],'audio')};
+function std(){return{title:'Amt 61 – Das Weihnachtsquiz',categories:[
+{name:'Traditionen',icon:'🎅',intro:'Wie feiert die Welt Weihnachten?',questions:[
+mc('In welchem Land entstand der Brauch, einen geschmückten Weihnachtsbaum aufzustellen?',['Frankreich','Deutschland','Schweden','Norwegen'],1),
+mc('In welchem Land bringt traditionell die Hexe Befana am 6. Januar den Kindern Geschenke?',['Spanien','Griechenland','Italien','Portugal'],2),
+mc('In welchem Land ist es eine beliebte Weihnachtstradition, an Heiligabend bei KFC zu essen?',['Südkorea','Japan','USA','Mexico'],1),
+mc('Was stellen Kinder in den Niederlanden traditionell am Abend vor dem Nikolaustag für Sinterklaas bereit?',['Einen Teller mit Keksen vor die Haustür','Einen Schuh mit einer Karotte für sein Pferd','Eine Kerze im Fenster','Eine Laterne am Dach'],1),
+mc('In welchem Land gehört es zur Weihnachtstradition, eine Yule Cat (Weihnachtskatze) zu fürchten?',['Norwegen','Island','Finnland','Dänemark'],1)],
+specials:[song('Lied 1 von 3'),song('Lied 2 von 3'),song('Lied 3 von 3')]},
+{name:'Essen und Trinken',icon:'🍪',intro:'Von Glögg bis Marzipan.',questions:[
+mc('Wie nennt man den Glühwein in Schweden?',['Fika','Glögg','Julvin','Punsch'],1),
+mc('Was versteckt sich traditionell im britischen Christmas Pudding, um dem Finder Glück zu bringen?',['Eine Mandel','Eine Silbermünze','Ein Zimtstern','Eine Walnuss'],1),
+mc('In welchem Land hat der Baumkuchen, der besonders zur Weihnachtszeit beliebt ist, seinen Ursprung?',['Österreich','Deutschland','Frankreich','Schweden'],1),
+mc('Was für eine Pizza bestellt sich Kevin in „Kevin – Allein zu Haus“?',['Pizza Salami','Pizza mit Käse und Peperoni','Pizza mit Käse','Pizza mit Schinken'],2),
+mc('Woraus besteht Marzipan hauptsächlich?',['Haselnüssen','Mandeln','Pistazien','Walnüssen'],1)],
+specials:[
+tx('Welchen Film stellen diese Emojis dar? (Artikel darf fehlen)',['Der Nussknacker','Nussknacker'],'steps',{steps:['🌰','🔨']}),
+tx('Welchen Film stellen diese Emojis dar? (Artikel darf fehlen)',['Schöne Bescherung'],'steps',{steps:['🏝️','🎄']}),
+tx('Welchen Film stellen diese Emojis dar? (Artikel darf fehlen)',['Der Polarexpress','Polarexpress'],'steps',{steps:['🐻‍❄️','🚂']}),
+tx('Welchen Film stellen diese Emojis dar? (Artikel darf fehlen)',['Der Grinch','Grinch'],'steps',{steps:['💚','😈','🎄']})]},
+{name:'Rekorde',icon:'🏆',intro:'Höher, weiter, weihnachtlicher.',questions:[
+mc('Wie lang war der längste Weihnachtsstollen der Welt, der 2025 in den Niederlanden gebacken wurde?',['35 Meter','52 Meter','65 Meter','Knapp 80 Meter'],3),
+es('Wie viele Weihnachtsmänner versammelten sich 2014 zum Weltrekord in Indien?',18112,''),
+mc('Wie groß war der höchste Schneemann der Welt, der 2008 in den USA gebaut wurde?',['12,50 Meter','22,15 Meter','37,21 Meter','48,60 Meter'],2),
+es('Wie hoch war der höchste jemals aufgestellte, geschlagene Weihnachtsbaum?',64.6,'Meter'),
+mc('Wie lange sang eine Frau aus Nigeria am Stück Weihnachtslieder, um einen Weltrekord aufzustellen?',['18 Stunden','24 Stunden','40 Stunden','52 Stunden'],2)],
+specials:[tx('Lieder-Spezialfrage: Welches Lied wird hier (schlecht) gesungen?',[],'audio'),tx('Lieder-Spezialfrage: Beende den Satz! (Instrumental läuft im Hintergrund)',[],'audio')]},
+{name:'Regionales / Baurecht',icon:'🏛️',intro:'Weihnachten in Koblenz und im Amt.',questions:[
+es('Wie viele Weihnachtsmarktstände gibt es ungefähr auf dem Koblenzer Weihnachtsmarkt?',130,'Stände'),
+mc('In welcher Stadt findet der größte Weihnachtsmarkt in Rheinland-Pfalz statt?',['Koblenz','Trier','Mainz','Ludwigshafen'],2),
+mc('Wie konnte die Polizei 2017 in Koblenz-Horchheim einen Weihnachtsbaumdieb überführen?',['Der Dieb wurde von einer Gruppe Kinder verfolgt, da er ein Weihnachtsmannkostüm trug','Der Dieb wurde von einer Überwachungskamera gefilmt.','Der künstliche Schnee am Weihnachtsbaum hinterließ eine Spur bis zu seiner Wohnung.','Der Dieb verlor unterwegs seine Autoschlüssel.'],2),
+mc('Die Stadtverwaltung möchte einen 4 Meter hohen Weihnachtsbaum im Eingangsbereich aufstellen. Welcher Aspekt ist dabei besonders wichtig?',['Die Anzahl der Christbaumkugeln.','Die Farbe der Weihnachtsbeleuchtung.','Die Freihaltung von Flucht- und Rettungswegen.','Die Zustimmung des Weihnachtsmannes.'],2),
+mc('Der Weihnachtsmann möchte auf einem bislang unbebauten Grundstück eine riesige Weihnachtshalle errichten. Welcher Plan legt grundsätzlich fest, welche Art der baulichen Nutzung dort zulässig ist?',['Der Rettungswegeplan','Der Bebauungsplan','Der Winterdienstplan','Der Lageplan des Weihnachtsmannes'],1)],
+specials:[tx('Lieder-/Film-Spezialfrage: Welches Lied oder welcher Film wird hier auf Chinesisch/Indisch gesungen?',[],'audio'),tx('Lieder-/Film-Spezialfrage: Welches Lied oder welcher Film wird hier auf Chinesisch/Indisch gesungen?',[],'audio')]}
+]}}
+
+var KEY='amt61-quiz-v1',D,sel={c:0,s:'questions',i:0},blobs=new WeakMap();
+try{D=JSON.parse(localStorage.getItem(KEY))}catch(e){}
+if(!D||!D.categories)D=std();
+function save(){try{localStorage.setItem(KEY,JSON.stringify(D))}catch(e){}}
+function cur(){return D.categories[sel.c][sel.s][sel.i]}
+function done(q){return q.type==='mc'?q.options.every(Boolean)&&q.text:q.type==='estimate'?q.answer!==''&&q.text:q.text&&q.answers&&q.answers.length>0&&(q.reveal!=='audio'&&q.reveal!=='synth'&&q.reveal!=='rhythm'&&q.reveal!=='pixelate'&&q.reveal!=='zoom'||(q.reveal==='synth'||q.reveal==='rhythm'?q.notes:q.reveal==='audio'?q.audio:q.image))}
+var TYPE={mc:'Multiple Choice',estimate:'Schätzfrage',text:'Texteingabe'};
+var REV={none:'Nur Text',steps:'Schrittweise einblenden (Emojis, Übersetzungen …)',pixelate:'Bild verpixelt → scharf',zoom:'Bild zoomt heraus',audio:'Audiodatei',synth:'Lied „schlecht“ mit Browsertönen',rhythm:'Nur Rhythmus (Klopfen)'};
+var $=function(i){return document.getElementById(i)};
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;')}
+
+function tree(){
+ var h='';
+ D.categories.forEach(function(c,ci){
+  h+='<div class="cat"><h3>'+c.icon+' '+esc(c.name)+'</h3>';
+  c.questions.forEach(function(q,i){h+=row(ci,'questions',i,q)});
+  h+='<div style="display:flex;gap:6px;margin:4px 0"><button class="s" data-add="'+ci+':questions">+ Frage</button></div><div class="rank">🏅 Top-5-Ranking</div>';
+  c.specials.forEach(function(q,i){h+=row(ci,'specials',i,q)});
+  h+='<button class="s" data-add="'+ci+':specials">+ Spezialfrage</button></div>';
+ });
+ $('tree').innerHTML=h;
+}
+function row(ci,s,i,q){
+ var on=sel.c===ci&&sel.s===s&&sel.i===i;
+ return '<div class="it'+(on?' on':'')+'" data-sel="'+ci+':'+s+':'+i+'"><span class="'+(done(q)?'':'todo')+'">●</span><span class="t">'+(i+1)+'. '+esc(q.text||'(leer)')+'</span><button class="s" data-mv="'+ci+':'+s+':'+i+':-1">↑</button><button class="s" data-mv="'+ci+':'+s+':'+i+':1">↓</button><button class="s" data-del="'+ci+':'+s+':'+i+'">✕</button></div>';
+}
+
+function field(l,h){return '<label>'+l+'</label>'+h}
+function editor(){
+ var q=cur(),c=D.categories[sel.c],h='';
+ h+='<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b>'+esc(c.name)+'</b><span class="tag">'+(sel.s==='specials'?'Spezialfrage nach dem Ranking':'Frage '+(sel.i+1)+' von '+c.questions.length)+'</span></div>';
+ h+=field('Kategorie-Name &amp; Intro (gilt für die ganze Kategorie)','<div class="g"><input data-cat="name" value="'+esc(c.name)+'"><input data-cat="intro" value="'+esc(c.intro)+'"></div>');
+ h+=field('Fragetyp','<select data-k="type">'+Object.keys(TYPE).map(function(k){return '<option value="'+k+'"'+(q.type===k?' selected':'')+'>'+TYPE[k]+'</option>'}).join('')+'</select>');
+ h+=field('Fragetext','<textarea data-k="text" style="font-family:inherit;font-size:16px">'+esc(q.text)+'</textarea>');
+ if(q.type==='mc'){
+  h+='<label>Antworten (Punkt = richtige Antwort)</label>';
+  q.options.forEach(function(o,i){h+='<div class="opt"><input type="radio" name="cr" data-cor="'+i+'"'+(q.correct===i?' checked':'')+'><b>'+'ABCD'[i]+'</b><input data-opt="'+i+'" value="'+esc(o)+'"></div>'});
+ }else if(q.type==='estimate'){
+  h+=field('Gesuchte Zahl &amp; Einheit','<div class="g"><input type="number" step="any" data-k="answer" value="'+esc(q.answer)+'"><input data-k="unit" placeholder="z. B. Meter" value="'+esc(q.unit||'')+'"></div>');
+ }else{
+  h+=field('Erlaubte Antworten (eine pro Zeile; Artikel &amp; kleine Tippfehler werden verziehen)','<textarea data-list="answers">'+esc((q.answers||[]).join('\n'))+'</textarea>');
+  h+=field('Darstellung','<select data-k="reveal">'+Object.keys(REV).map(function(k){return '<option value="'+k+'"'+(q.reveal===k?' selected':'')+'>'+REV[k]+'</option>'}).join('')+'</select>');
+  if(q.reveal==='steps')h+=field('Schritte (eine pro Zeile, werden nacheinander eingeblendet)','<textarea data-list="steps">'+esc((q.steps||[]).join('\n'))+'</textarea><div class="steps" id="stp"></div>');
+  if(q.reveal==='pixelate'||q.reveal==='zoom'){
+   h+=field('Bild (Datei liegt später im Repo unter assets/)','<input type="file" accept="image/*" id="fimg"><div class="note">Aktuell: '+esc(q.image||'–')+'</div>');
+   if(q.reveal==='zoom')h+=field('Zoom-Fokus in % (X / Y) &amp; Start-Zoom','<div class="g"><input type="number" data-k="fx" value="'+(q.fx==null?50:q.fx)+'"><input type="number" data-k="fy" value="'+(q.fy==null?50:q.fy)+'"></div><input type="number" data-k="zoom" value="'+(q.zoom||8)+'" style="margin-top:6px">');
+   h+='<label>Vorschau – Fortschritt</label><input type="range" id="pg" min="0" max="100" value="0"><canvas id="cv" width="640" height="360"></canvas>';
+  }
+  if(q.reveal==='audio')h+=field('Audiodatei','<input type="file" accept="audio/*" id="faud"><div class="note">Aktuell: '+esc(q.audio||'–')+'</div><audio id="au" controls style="width:100%;margin-top:6px"></audio>');
+  if(q.reveal==='synth'||q.reveal==='rhythm'){
+   h+=field('Noten (Format F#5:.5 E5:1 R:.5 – R = Pause, Länge in Vierteln)','<textarea data-k="notes">'+esc(q.notes||'')+'</textarea>');
+   h+='<div class="g"><div><label>Tempo (BPM)</label><input type="number" data-k="bpm" value="'+(q.bpm||112)+'"></div><div><label>Klang</label><select data-k="voice">'+['ring:Handy-Klingelton','bit:8-Bit','sour:Verstimmt','kazoo:Kazoo','wood:Holzblock (Rhythmus)'].map(function(o){var p=o.split(':');return '<option value="'+p[0]+'"'+((q.voice||'ring')===p[0]?' selected':'')+'>'+p[1]+'</option>'}).join('')+'</select></div></div>';
+   h+='<div style="margin-top:8px"><button class="p" id="pl">▶ Anhören</button> <button id="st">■ Stopp</button></div>';
+  }
+  h+=field('Antwort testen (Fuzzy-Match)','<input id="tst" placeholder="Tippfehler ausprobieren …"><div id="res"></div>');
+ }
+ h+=field('Zeit in Sekunden','<input type="number" data-k="timeLimit" value="'+(q.timeLimit||20)+'" style="max-width:120px">');
+ $('ed').innerHTML=h;
+ if(q.reveal==='steps')stp();
+ if(q.reveal==='pixelate'||q.reveal==='zoom')prev();
+ if(q.reveal==='audio'&&blobs.get(q)&&blobs.get(q).a)$('au').src=blobs.get(q).a;
+ else if(q.reveal==='audio'&&q.audio)$('au').src=q.audio;
+}
+function stp(){var e=$('stp');if(e)e.innerHTML=(cur().steps||[]).map(function(s){return '<span>'+esc(s)+'</span>'}).join('')}
+
+/* Bild-Vorschau */
+function prev(){
+ var q=cur(),cv=$('cv');if(!cv)return;
+ var src=(blobs.get(q)&&blobs.get(q).i)||q.image;
+ var x=cv.getContext('2d');x.fillStyle='#000';x.fillRect(0,0,640,360);
+ if(!src){x.fillStyle='#a9c2b4';x.font='20px sans-serif';x.fillText('Noch kein Bild gewählt',210,185);return}
+ var im=new Image();im.onload=function(){
+  var p=($('pg')?$('pg').value:0)/100,W=640,H=360;
+  if(q.reveal==='pixelate'){
+   var n=Math.max(3,Math.round(3+(W-3)*p*p*p)),h=Math.max(2,Math.round(n*H/W));
+   var o=document.createElement('canvas');o.width=n;o.height=h;o.getContext('2d').drawImage(im,0,0,n,h);
+   x.imageSmoothingEnabled=p>=.99;x.drawImage(o,0,0,W,H);
+  }else{
+   var s=1+((q.zoom||8)-1)*(1-p),w=im.width/s,hh=im.height/s;
+   var cx=Math.min(Math.max((q.fx==null?50:q.fx)/100*im.width,w/2),im.width-w/2),cy=Math.min(Math.max((q.fy==null?50:q.fy)/100*im.height,hh/2),im.height-hh/2);
+   x.drawImage(im,cx-w/2,cy-hh/2,w,hh,0,0,W,H);
+  }};
+ im.src=src;
+}
+
+/* Fuzzy */
+function norm(s){return String(s).toLowerCase().replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/ß/g,'ss').replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim().replace(/^(der|die|das|ein|eine|the) /,'')}
+function lev(a,b){var m=[],i,j;for(i=0;i<=a.length;i++)m[i]=[i];for(j=1;j<=b.length;j++)m[0][j]=j;for(i=1;i<=a.length;i++)for(j=1;j<=b.length;j++)m[i][j]=Math.min(m[i-1][j]+1,m[i][j-1]+1,m[i-1][j-1]+(a[i-1]===b[j-1]?0:1));return m[a.length][b.length]}
+function match(inp,answers){var a=norm(inp);return answers.some(function(r){var b=norm(r);return b&&lev(a,b)<=Math.floor(b.length/5)})}
+
+/* Audio-Engine */
+var AC,live=[];
+function stop(){live.forEach(function(n){try{n.stop()}catch(e){}});live=[]}
+function parse(t){var N={C:0,D:2,E:4,F:5,G:7,A:9,B:11};return(t||'').trim().split(/\s+/).map(function(s){var p=s.split(':'),l=parseFloat(p[1])||1;if(p[0].toUpperCase()==='R')return{r:1,l:l};var m=/^([A-Ga-g])([#b]?)(\d)$/.exec(p[0]);if(!m)return null;var v=12*(+m[3]+1)+N[m[1].toUpperCase()]+(m[2]==='#'?1:m[2]==='b'?-1:0);return{f:440*Math.pow(2,(v-69)/12),l:l}}).filter(Boolean)}
+function play(q){
+ stop();AC=AC||new (window.AudioContext||window.webkitAudioContext)();AC.resume();
+ var b=60/(q.bpm||112),t=AC.currentTime+.1,v=q.voice||'ring';
+ parse(q.notes).forEach(function(n){var d=n.l*b;
+  if(!n.r){var o=AC.createOscillator(),g=AC.createGain();
+   if(q.reveal==='rhythm'){o.type='triangle';o.frequency.setValueAtTime(900,t);o.frequency.exponentialRampToValueAtTime(600,t+.05);g.gain.setValueAtTime(.7,t);g.gain.exponentialRampToValueAtTime(.001,t+.12)}
+   else{var f=n.f;o.type=v==='ring'?'square':'sawtooth';if(v==='bit')o.type='square';if(v==='sour')f*=Math.pow(2,(Math.random()*70-35)/1200*1.4);if(v==='kazoo')f/=2;
+    o.frequency.setValueAtTime(f,t);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.16,t+.01);g.gain.setValueAtTime(.16,t+d*.8);g.gain.linearRampToValueAtTime(0,t+d*.98)}
+   o.connect(g).connect(AC.destination);o.start(t);o.stop(t+Math.max(d,.15));live.push(o)}
+  t+=d});
+}
+
+/* Events */
+$('tree').addEventListener('click',function(e){
+ var t=e.target,a;
+ if(a=t.dataset.add){a=a.split(':');var c=D.categories[+a[0]],q=a[1]==='questions'?mc('',['','','',''],0):tx('',[],'none');c[a[1]].push(q);sel={c:+a[0],s:a[1],i:c[a[1]].length-1}}
+ else if(a=t.dataset.del){a=a.split(':');if(!confirm('Frage wirklich löschen?'))return;var l=D.categories[+a[0]][a[1]];l.splice(+a[2],1);sel={c:+a[0],s:a[1],i:Math.max(0,Math.min(+a[2],l.length-1))};if(!l.length){l.push(mc('',['','','',''],0));sel.i=0}}
+ else if(a=t.dataset.mv){a=a.split(':');var l2=D.categories[+a[0]][a[1]],i=+a[2],j=i+ +a[3];if(j<0||j>=l2.length)return;var x=l2[i];l2[i]=l2[j];l2[j]=x;sel={c:+a[0],s:a[1],i:j}}
+ else{var r=t.closest('[data-sel]');if(!r)return;a=r.dataset.sel.split(':');sel={c:+a[0],s:a[1],i:+a[2]}}
+ save();tree();editor();
+});
+$('ed').addEventListener('input',function(e){
+ var t=e.target,q=cur(),c=D.categories[sel.c];
+ if(t.dataset.cat){c[t.dataset.cat]=t.value;tree();}
+ else if(t.dataset.k){var k=t.dataset.k;
+  if(k==='type'){
+   if(t.value==='mc'){q.options=q.options||['','','',''];q.correct=q.correct||0}
+   if(t.value==='estimate'&&q.answer==null)q.answer='';
+   q.type=t.value;save();tree();editor();return}
+  if(k==='reveal'){q.reveal=t.value;save();editor();return}
+  q[k]=t.type==='number'&&t.value!==''?parseFloat(t.value):t.value;
+  if(k==='text'||k==='answer')tree();
+  if(k==='fx'||k==='fy'||k==='zoom')prev()}
+ else if(t.dataset.opt!=null){q.options[+t.dataset.opt]=t.value;tree()}
+ else if(t.dataset.cor!=null)q.correct=+t.dataset.cor;
+ else if(t.dataset.list){q[t.dataset.list]=t.value.split('\n').map(function(s){return s.trim()}).filter(Boolean);if(t.dataset.list==='steps')stp();tree()}
+ else if(t.id==='tst'){var ok=q.type==='estimate'?null:match(t.value,q.answers||[]);$('res').textContent=!t.value?'':ok?'✅ Richtig (Tippfehler verziehen)':'❌ Falsch';}
+ else if(t.id==='pg')prev();
+ save();
+});
+$('ed').addEventListener('change',function(e){
+ var t=e.target,q=cur(),f=t.files&&t.files[0];
+ if(t.id==='fimg'&&f){q.image='assets/'+f.name;blobs.set(q,Object.assign(blobs.get(q)||{},{i:URL.createObjectURL(f)}));save();tree();editor()}
+ if(t.id==='faud'&&f){q.audio='assets/'+f.name;blobs.set(q,Object.assign(blobs.get(q)||{},{a:URL.createObjectURL(f)}));save();tree();editor()}
+});
+$('ed').addEventListener('click',function(e){if(e.target.id==='pl')play(cur());if(e.target.id==='st')stop()});
+$('jbtn').onclick=function(){var s=$('js').style;s.display=s.display==='none'?'block':'none';$('jt').value=JSON.stringify(D,null,1)};
+$('jgen').onclick=function(){$('jt').value=JSON.stringify(D,null,1);$('jt').select()};
+$('jload').onclick=function(){try{var n=JSON.parse($('jt').value);if(!n.categories)throw 0;D=n;sel={c:0,s:'questions',i:0};save();tree();editor()}catch(x){alert('Das JSON ist ungültig.')}};
+$('jreset').onclick=function(){if(confirm('Alles auf die Standardfragen zurücksetzen?')){D=std();sel={c:0,s:'questions',i:0};save();tree();editor();$('jt').value=''}};
+tree();editor();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="de"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Amt 61 – Weihnachtsquiz</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:#10241c;color:#fff8e7;font:18px "Trebuchet MS",sans-serif;padding:env(safe-area-inset-top,0) 16px env(safe-area-inset-bottom,0)}
+#app{max-width:480px;margin:0 auto;padding:20px 0;text-align:center}
+h1{color:#f5c542;font-size:28px;margin:8px 0}
+input{font:inherit;width:100%;padding:14px;border-radius:12px;border:3px solid #345a49;background:#0c1b15;color:#fff8e7;text-align:center}
+.ic{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:16px 0}
+.ic button{font-size:34px;padding:8px;border-radius:14px;border:3px solid transparent;background:#1b3a2d}
+.ic button.on{border-color:#f5c542;background:#2f5a49}
+.go{font:inherit;font-size:22px;width:100%;padding:16px;border:0;border-radius:14px;background:#c8102e;color:#fff;margin-top:10px}
+.mc{display:grid;gap:12px;margin-top:16px}
+.mc button{font:inherit;font-size:20px;padding:18px 12px;border:0;border-radius:14px;color:#fff;text-align:left}
+.big{font-size:64px;margin:20px 0}
+.bar{height:10px;background:#1b3a2d;border-radius:5px;overflow:hidden;margin:10px 0}
+.bar i{display:block;height:100%;background:#f5c542;width:100%}
+.q{font-size:20px;margin:12px 0}
+</style></head><body><div id="app"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<script>
+const sb=supabase.createClient(CFG.url,CFG.key),A=document.getElementById('app');
+const ICONS=['🎅','🤶','🦌','⛄','🎄','🎁','⭐','🔔','🍪','🧝','🕯️','🧦','🥛','❄️','🦃','🍷'];
+const COL=['#c8102e','#1565c0','#d4a017','#2e7d32'],SYM=['▲','◆','●','■'];
+let me=null,g={phase:'lobby',data:{}},icon='',sent={},tm;
+try{me=JSON.parse(localStorage.getItem('me61'))}catch(e){}
+const esc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+const put=h=>{A.innerHTML='<h1>🎄 Amt 61 Weihnachtsquiz</h1>'+h};
+
+function joinView(){
+ put('<p>Such dir einen lustigen Spitznamen und ein Icon aus:</p><input id="nm" maxlength="20" placeholder="Dein Spitzname" autocomplete="off"><div class="ic">'+ICONS.map(i=>'<button data-i="'+i+'"'+(i===icon?' class="on"':'')+'>'+i+'</button>').join('')+'</div><button class="go" id="j">Los geht’s!</button><p id="er"></p>');
+ A.querySelectorAll('.ic button').forEach(b=>b.onclick=()=>{icon=b.dataset.i;const n=document.getElementById('nm').value;joinView();document.getElementById('nm').value=n});
+ document.getElementById('j').onclick=async()=>{
+  const name=document.getElementById('nm').value.trim();
+  if(!name||!icon){document.getElementById('er').textContent='Bitte Namen und Icon wählen.';return}
+  const r=await sb.from('players').insert({name,icon}).select().single();
+  if(r.error){document.getElementById('er').textContent='Fehler: '+r.error.message;return}
+  me=r.data;localStorage.setItem('me61',JSON.stringify(me));render();
+ };
+}
+
+async function place(){
+ const p=(await sb.from('players').select('id,score').order('score',{ascending:false})).data||[];
+ const i=p.findIndex(x=>x.id===me.id);return{rank:i+1,score:i<0?0:p[i].score,n:p.length};
+}
+
+async function render(){
+ clearInterval(tm);
+ if(!me)return joinView();
+ const d=g.data||{};
+ if(g.phase==='question'){
+  if(sent[d.qkey])return put('<div class="big">✅</div><p>Antwort gesendet!<br>Warte auf die anderen …</p>');
+  let h='<div class="bar"><i id="b"></div><div class="q">'+esc(d.text)+'</div>';
+  if(d.type==='mc')h+='<div class="mc">'+d.options.map((o,i)=>'<button data-a="'+i+'" style="background:'+COL[i]+'">'+SYM[i]+'  '+esc(o)+'</button>').join('')+'</div>';
+  else h+='<input id="an" '+(d.type==='estimate'?'type="number" step="any" inputmode="decimal" placeholder="Deine Schätzung'+(d.unit?' ('+esc(d.unit)+')':'')+'"':'placeholder="Deine Antwort"')+' autocomplete="off"><button class="go" id="s">Senden</button>';
+  put(h);
+  const t0=Date.now(),secs=d.secs||20;
+  tm=setInterval(()=>{const b=document.getElementById('b');if(b)b.style.width=Math.max(0,100-(Date.now()-t0)/secs/10)+'%'},100);
+  const send=async v=>{
+   sent[d.qkey]=1;put('<div class="big">⏳</div><p>Sende …</p>');
+   const r=await sb.from('answers').insert({player_id:me.id,qkey:d.qkey,value:String(v)});
+   put(r.error?'<div class="big">⌛</div><p>Zu spät – die Zeit ist abgelaufen.</p>':'<div class="big">✅</div><p>Antwort gesendet!<br>Warte auf die anderen …</p>');
+  };
+  A.querySelectorAll('.mc button').forEach(b=>b.onclick=()=>send(b.dataset.a));
+  const s=document.getElementById('s');if(s)s.onclick=()=>{const v=document.getElementById('an').value.trim();if(v)send(v)};
+ }else if(g.phase==='reveal'){
+  const p=(d.out||{})[me.id]||0,r=await place();
+  put('<div class="big">'+(p>0?'🎉':'😅')+'</div><p>'+(p>0?'Richtig! <b>+'+p+'</b> Punkte':'Leider keine Punkte')+'</p><p>Platz <b>'+r.rank+'</b> von '+r.n+' · '+r.score+' Punkte</p>');
+ }else if(g.phase==='ranking'||g.phase==='final'){
+  const r=await place();
+  put('<div class="big">'+(g.phase==='final'?'🏆':'🏅')+'</div><p>'+(g.phase==='final'?'Endstand':'Zwischenstand')+'</p><p>Du bist auf Platz <b>'+r.rank+'</b> von '+r.n+'<br>'+r.score+' Punkte</p>');
+ }else put('<div class="big">'+me.icon+'</div><p>Hallo <b>'+esc(me.name)+'</b>!<br>Schau auf den Beamer – gleich geht’s los.</p>');
+}
+
+(async()=>{
+ if(me){const r=await sb.from('players').select('id').eq('id',me.id).maybeSingle();if(!r.data){me=null;localStorage.removeItem('me61')}}
+ const r=await sb.from('game').select('*').eq('id',1).single();if(r.data)g=r.data;
+ sb.channel('g').on('postgres_changes',{event:'*',schema:'public',table:'game'},p=>{g=p.new;render()}).subscribe();
+ render();
+})();
+</script></body></html>
