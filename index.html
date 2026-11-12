@@ -2,32 +2,18 @@
 <html lang="de"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Amt 61 – Weihnachtsquiz</title>
-<style>
-*{box-sizing:border-box}
-body{margin:0;min-height:100vh;background:#10241c;color:#fff8e7;font:18px "Trebuchet MS",sans-serif;padding:env(safe-area-inset-top,0) 16px env(safe-area-inset-bottom,0)}
-#app{max-width:480px;margin:0 auto;padding:20px 0;text-align:center}
-h1{color:#f5c542;font-size:28px;margin:8px 0}
-input{font:inherit;width:100%;padding:14px;border-radius:12px;border:3px solid #345a49;background:#0c1b15;color:#fff8e7;text-align:center}
-.ic{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:16px 0}
-.ic button{font-size:34px;padding:8px;border-radius:14px;border:3px solid transparent;background:#1b3a2d}
-.ic button.on{border-color:#f5c542;background:#2f5a49}
-.go{font:inherit;font-size:22px;width:100%;padding:16px;border:0;border-radius:14px;background:#c8102e;color:#fff;margin-top:10px}
-.mc{display:grid;gap:12px;margin-top:16px}
-.mc button{font:inherit;font-size:20px;padding:18px 12px;border:0;border-radius:14px;color:#fff;text-align:left}
-.big{font-size:64px;margin:20px 0}
-.bar{height:10px;background:#1b3a2d;border-radius:5px;overflow:hidden;margin:10px 0}
-.bar i{display:block;height:100%;background:#f5c542;width:100%}
-.q{font-size:20px;margin:12px 0}
-</style></head><body><div id="app"></div>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Lora:wght@500;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="theme.css"></head><body><div id="fx" style="position:fixed"></div><div id="app"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="config.js"></script>
+<script src="fx.js"></script>
 <script>
 const sb=supabase.createClient(CFG.url,CFG.key,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}}),A=document.getElementById('app');
 const ICONS=['🎅','🤶','🦌','⛄','🎄','🎁','⭐','🔔','🍪','🧝','🕯️','🧦','🥛','❄️','🦃','🍷'];
-const COL=['#c8102e','#1565c0','#d4a017','#2e7d32'],SYM=['▲','◆','●','■'];
+const COL=['#9b1c2c','#1f4e79','#a8741a','#2f6b3a'],SYM=['▲','◆','●','■'];
 let me=null,g={phase:'lobby',data:{}},icon='',sent={},tm;
 try{me=JSON.parse(localStorage.getItem('me61'))}catch(e){}
 const esc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+snow(document.getElementById('fx'),22);
 const put=h=>{A.innerHTML='<h1>🎄 Amt 61 Weihnachtsquiz</h1>'+h};
 
 function joinView(){
@@ -67,7 +53,7 @@ async function render(){
   A.querySelectorAll('.mc button').forEach(b=>b.onclick=()=>send(b.dataset.a));
   const s=document.getElementById('s');if(s)s.onclick=()=>{const v=document.getElementById('an').value.trim();if(v)send(v)};
  }else if(g.phase==='reveal'){
-  const p=(d.out||{})[me.id]||0,r=await place();
+  const p=(d.out||{})[me.id]||0,r=await place();if(p>0)burst(document.body);
   put('<div class="big">'+(p>0?'🎉':'😅')+'</div><p>'+(p>0?'Richtig! <b>+'+p+'</b> Punkte':'Leider keine Punkte')+'</p><p>Platz <b>'+r.rank+'</b> von '+r.n+' · '+r.score+' Punkte</p>');
  }else if(g.phase==='ranking'||g.phase==='final'){
   const r=await place();
