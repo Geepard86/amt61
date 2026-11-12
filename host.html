@@ -36,9 +36,8 @@ addEventListener('resize',fit);fit();
 const COL=['#c8102e','#1565c0','#d4a017','#2e7d32'],SYM=['▲','◆','●','■'];
 const esc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
 const wait=ms=>new Promise(r=>setTimeout(r,ms)),click=id=>new Promise(r=>$(id).onclick=r);
-let Q,pw=sessionStorage.pw61||prompt('Host-Passwort:'),done={};try{done=JSON.parse(localStorage.d61||'{}')}catch(e){}
-sessionStorage.pw61=pw;
-async function rpc(f,a){const r=await sb.rpc(f,Object.assign({pw},a));if(r.error){alert(r.error.message);throw r.error}return r.data}
+let Q,done={};try{done=JSON.parse(localStorage.d61||'{}')}catch(e){}
+async function rpc(f,a){const r=await sb.rpc(f,a||{});if(r.error){alert(r.error.message);throw r.error}return r.data}
 const set=(phase,data,secs)=>rpc('host_set',{p_phase:phase,p_data:data||{},p_secs:secs||0});
 const players=async()=>(await sb.from('players').select('*').order('score',{ascending:false})).data||[];
 const ckey=(c,t,i)=>c+(t==='s'?'-s':'-q'+i),mark=k=>{done[k]=1;localStorage.d61=JSON.stringify(done)};
@@ -163,5 +162,6 @@ async function lobby(){
  await click('go');clearInterval(iv);calendar();
 }
 
-(async()=>{Q=await(await fetch('questions.json?'+Date.now())).json();lobby()})();
+(async()=>{const r=await sb.from('quiz').select('data').eq('id',1).maybeSingle();
+ Q=r.data&&r.data.data&&r.data.data.categories?r.data.data:await(await fetch('questions.json?'+Date.now())).json();lobby()})();
 </script></body></html>

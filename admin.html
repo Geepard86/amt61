@@ -38,8 +38,8 @@ canvas{max-width:100%;border-radius:10px;background:#000}
 <body>
 <header>
 <h1>🎄 Amt 61 – Quiz-Admin</h1>
-<span class="note">Änderungen werden automatisch im Browser gespeichert. Für das Quiz: JSON unten erzeugen und als <b>questions.json</b> ins Repo legen.</span>
-<button id="jbtn" class="p">JSON ein-/ausblenden</button>
+<span class="note">Änderungen werden automatisch in Supabase gespeichert (und als Sicherung im Browser).</span> <b id="sbs" style="font-size:13px"></b>
+<button id="sbtn" class="p">☁ Jetzt speichern</button> <button id="jbtn">JSON ein-/ausblenden</button>
 </header>
 <main>
 <div class="pane" id="tree"></div>
@@ -52,6 +52,8 @@ canvas{max-width:100%;border-radius:10px;background:#000}
 </div>
 </div>
 </main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
 <script>
 (function(){
 var mc=function(t,o,c){return{type:'mc',text:t,options:o,correct:c,timeLimit:20}};
@@ -96,7 +98,10 @@ specials:[tx('Lieder-/Film-Spezialfrage: Welches Lied oder welcher Film wird hie
 var KEY='amt61-quiz-v1',D,sel={c:0,s:'questions',i:0},blobs=new WeakMap();
 try{D=JSON.parse(localStorage.getItem(KEY))}catch(e){}
 if(!D||!D.categories)D=std();
-function save(){try{localStorage.setItem(KEY,JSON.stringify(D))}catch(e){}}
+var sb=null,pt;try{sb=supabase.createClient(CFG.url,CFG.key)}catch(e){}
+function st(t){var e=document.getElementById('sbs');if(e)e.textContent=t}
+function push(){if(!sb)return;st('Speichere …');sb.from('quiz').upsert({id:1,data:D}).then(function(r){st(r.error?'⚠ Supabase: '+r.error.message:'☁ In Supabase gespeichert')})}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(D))}catch(e){}if(sb){clearTimeout(pt);pt=setTimeout(push,1200)}}
 function cur(){return D.categories[sel.c][sel.s][sel.i]}
 function done(q){return q.type==='mc'?q.options.every(Boolean)&&q.text:q.type==='estimate'?q.answer!==''&&q.text:q.text&&q.answers&&q.answers.length>0&&(q.reveal!=='audio'&&q.reveal!=='synth'&&q.reveal!=='rhythm'&&q.reveal!=='pixelate'&&q.reveal!=='zoom'||(q.reveal==='synth'||q.reveal==='rhythm'?q.notes:q.reveal==='audio'?q.audio:q.image))}
 var TYPE={mc:'Multiple Choice',estimate:'Schätzfrage',text:'Texteingabe'};
@@ -109,7 +114,7 @@ function tree(){
  D.categories.forEach(function(c,ci){
   h+='<div class="cat"><h3>'+c.icon+' '+esc(c.name)+'</h3>';
   c.questions.forEach(function(q,i){h+=row(ci,'questions',i,q)});
-  h+='<div style="display:flex;gap:6px;margin:4px 0"><button class="s" data-add="'+ci+':questions">+ Frage</button></div><div class="rank">🏅 Top-5-Ranking</div>';
+  h+='<div style="display:flex;gap:6px;margin:4px 0"><button class="s" data-add="'+ci+':questions">+ Frage</button></div>';
   c.specials.forEach(function(q,i){h+=row(ci,'specials',i,q)});
   h+='<button class="s" data-add="'+ci+':specials">+ Spezialfrage</button></div>';
  });
@@ -123,7 +128,7 @@ function row(ci,s,i,q){
 function field(l,h){return '<label>'+l+'</label>'+h}
 function editor(){
  var q=cur(),c=D.categories[sel.c],h='';
- h+='<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b>'+esc(c.name)+'</b><span class="tag">'+(sel.s==='specials'?'Spezialfrage nach dem Ranking':'Frage '+(sel.i+1)+' von '+c.questions.length)+'</span></div>';
+ h+='<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b>'+esc(c.name)+'</b><span class="tag">'+(sel.s==='specials'?'Spezialfrage':'Frage '+(sel.i+1)+' von '+c.questions.length)+'</span></div>';
  h+=field('Kategorie-Name &amp; Intro (gilt für die ganze Kategorie)','<div class="g"><input data-cat="name" value="'+esc(c.name)+'"><input data-cat="intro" value="'+esc(c.intro)+'"></div>');
  h+=field('Fragetyp','<select data-k="type">'+Object.keys(TYPE).map(function(k){return '<option value="'+k+'"'+(q.type===k?' selected':'')+'>'+TYPE[k]+'</option>'}).join('')+'</select>');
  h+=field('Fragetext','<textarea data-k="text" style="font-family:inherit;font-size:16px">'+esc(q.text)+'</textarea>');
@@ -238,6 +243,11 @@ $('jgen').onclick=function(){$('jt').value=JSON.stringify(D,null,1);$('jt').sele
 $('jload').onclick=function(){try{var n=JSON.parse($('jt').value);if(!n.categories)throw 0;D=n;sel={c:0,s:'questions',i:0};save();tree();editor()}catch(x){alert('Das JSON ist ungültig.')}};
 $('jreset').onclick=function(){if(confirm('Alles auf die Standardfragen zurücksetzen?')){D=std();sel={c:0,s:'questions',i:0};save();tree();editor();$('jt').value=''}};
 tree();editor();
+document.getElementById('sbtn').onclick=push;
+if(sb)sb.from('quiz').select('data').eq('id',1).maybeSingle().then(function(r){
+ if(r.data&&r.data.data&&r.data.data.categories){D=r.data.data;sel={c:0,s:'questions',i:0};tree();editor();st('☁ Aus Supabase geladen')}
+ else if(r.error)st('⚠ Supabase: '+r.error.message);
+ else{st('Noch nichts in Supabase – Standardfragen werden gespeichert …');push()}});
 })();
 </script>
 </body>
