@@ -1,14 +1,26 @@
 <!DOCTYPE html>
 <html lang="de"><head><meta charset="utf-8"><title>Amt 61 – Beamer</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Lora:wght@500;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="theme.css"></head><body><div id="st"><div id="fx"></div><h1>🎄 Amt 61 – Das Weihnachtsquiz</h1><div id="v"></div></div>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Lora:wght@500;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="theme.css"><link rel="stylesheet" href="theme2.css"></head><body><div id="st"><div id="fx"></div><h1>🎄 Amt 61 – Das Weihnachtsquiz</h1><div id="v"></div></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="config.js"></script>
 <script src="fx.js"></script>
+<script src="music.js"></script>
 <script>
 const sb=supabase.createClient(CFG.url,CFG.key,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}}),V=document.getElementById('v'),$=i=>document.getElementById(i);
 const fit=()=>document.getElementById('st').style.transform='translate(-50%,-50%) scale('+Math.min(innerWidth/1920,innerHeight/1080)+')';
 addEventListener('resize',fit);fit();snow(document.getElementById('fx'),45);
+document.getElementById('st').insertAdjacentHTML('beforeend','<div id="toast"></div>');
+let ti=+localStorage.th61||0;const TH=['th-a','th-b','th-c','th-d'],NM=['Pergament','Foto-Fassade','Magisch','Gezeichnetes Gebäude'];
+const applyTh=()=>document.getElementById('st').className=TH[ti];applyTh();
+let tt;const toast=m=>{const e=document.getElementById('toast');e.textContent=m;e.classList.add('on');clearTimeout(tt);tt=setTimeout(()=>e.classList.remove('on'),1800)};
+addEventListener('click',()=>Music.start(),{once:true});
+addEventListener('keydown',e=>{const k=e.key.toLowerCase();
+ if($('fac')&&ti===1&&k.startsWith('arrow')){e.preventDefault();const sh=e.shiftKey,m={arrowleft:[sh?'dx':'x',-1],arrowright:[sh?'dx':'x',1],arrowup:[sh?'dy':'y',-1],arrowdown:[sh?'dy':'y',1]}[k];PH[m[0]]+=m[1]*(sh?.2:.5);localStorage.ph61=JSON.stringify(PH);place();toast('Fenster-Raster: '+['x','dx','y','dy'].map(n=>n+' '+PH[n].toFixed(1)).join(' · '));return}
+ if(k==='t'){ti=(ti+1)%4;localStorage.th61=ti;applyTh();toast('🎨 Theme: '+NM[ti]);if(document.querySelector('#v .door')||$('fac'))calendar()}
+ else if(k==='m')toast(Music.toggle()?'🔇 Musik aus':'🔊 Musik an');
+ else if(k==='+'||k==='=')toast('🔊 Lautstärke '+Music.louder(.1)+' %');
+ else if(k==='-')toast('🔉 Lautstärke '+Music.louder(-.1)+' %');});
 const COL=['#9b1c2c','#1f4e79','#a8741a','#2f6b3a'],SYM=['▲','◆','●','■'];
 const esc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
 document.getElementById('st').insertAdjacentHTML('afterbegin','<div id="err" style="position:absolute;top:0;left:0;right:0;z-index:9;background:#c8102e;font-size:30px;padding:12px 24px;display:none"></div>');
@@ -75,11 +87,13 @@ function media(q,secs){
 
 /* Eine Frage durchspielen */
 async function play(q,k,tag){
- const secs=q.timeLimit||20,np=(await players()).length;
+ const secs=q.timeLimit||20,np=(await players()).length,off=['audio','synth','rhythm'].includes(q.reveal);
+ Music.mode(off?'off':'quiz');clearFac();corner(false);
  const t0=new Date(await set('question',{qkey:k,type:q.type,text:q.text,options:q.options,unit:q.unit,secs},secs));
  V.innerHTML='<div style="font-size:34px;color:#f5c542">'+esc(tag)+'</div><div class="q">'+esc(q.text)+'</div><div class="bar"><i id="bar"></i></div>'
   +(q.type==='mc'?'<div class="opts">'+q.options.map((o,i)=>'<div class="opt" style="background:'+COL[i]+'">'+SYM[i]+'  '+esc(o)+'</div>').join('')+'</div>':q.type==='estimate'?'<div style="font-size:50px;margin-top:30px">Schätze! '+(q.unit?'(in '+esc(q.unit)+')':'')+'</div>':'')
   +'<div id="md"></div><div style="display:flex;align-items:center;margin-top:auto"><span id="cnt" style="font-size:36px"></span><button class="btn" id="skip" style="margin-left:auto">Auflösen ⏭</button></div>';
+ if(off)await wait(900);
  const stop=media(q,secs),end=Date.now()+secs*1000;let tick=0,iv;
  await new Promise(res=>{$('skip').onclick=res;iv=setInterval(async()=>{
   const left=Math.max(0,(end-Date.now())/1000);$('bar').style.width=left/secs*100+'%';$('bar').classList.toggle('hot',left<5);
@@ -89,7 +103,7 @@ async function play(q,k,tag){
  const ans=(await sb.from('answers').select('player_id,value,created_at').eq('qkey',k)).data||[];
  const {out,ok}=score(q,ans,t0);
  await rpc('host_scores',{deltas:Object.entries(out).map(([id,p])=>({id,p}))});
- await set('reveal',{qkey:k,out});if(ok.length)burst($('st'));
+ Music.mode('menu');await set('reveal',{qkey:k,out});if(ok.length)burst($('st'));
  const P=Object.fromEntries((await players()).map(p=>[p.id,p]));
  const right=q.type==='mc'?q.options[q.correct]:q.type==='estimate'?q.answer+(q.unit?' '+q.unit:''):(q.answers||[])[0];
  V.innerHTML='<div class="q">'+esc(q.text)+'</div><h2 style="color:#9be7a8;margin-top:30px">✅ '+esc(right)+'</h2>'
@@ -102,6 +116,7 @@ function md_full(){}
 
 /* Ranking */
 async function ranking(final){
+ Music.mode('menu');clearFac();corner(false);
  await set(final?'final':'ranking');burst($('st'));
  const P=(await players()).slice(0,5);
  V.innerHTML='<h2>'+(final?'🏆 Endstand':'🏅 Zwischenstand – Top 5')+'</h2>'+P.map((p,i)=>'<div class="rk"><em>'+(i+1)+'.</em><span>'+p.icon+' '+esc(p.name)+'</span><em>'+p.score+'</em></div>').join('')+(final?'':'<button class="btn" id="nx">Weiter ➜</button>');
@@ -111,13 +126,15 @@ async function ranking(final){
 /* Adventskalender */
 const allDone=c=>done[ckey(c,'s')]&&[0,1,2,3,4].every(i=>done[ckey(c,'q',i)]);
 function calendar(){
+ Music.mode('menu');clearFac();corner(true);
  set('calendar');
  const cur=Q.categories.findIndex((_,c)=>!allDone(c));
  if(cur<0)return ranking(true);
+ if(ti===1)return calFac(cur);
+ if(ti===3)return calIllu(cur);
  V.innerHTML=Q.categories.map((c,ci)=>'<div class="row"><div class="lab">'+c.icon+' '+esc(c.name)+'</div>'+[0,1,2,3,4,5].map(k=>{
   const sp=k===5,key=ckey(ci,sp?'s':'q',k),cls=done[key]?'done':ci!==cur?'lock':sp&&![0,1,2,3,4].every(i=>done[ckey(ci,'q',i)])?'lock':'';
-  return '<div class="door '+(sp?'sp ':'')+cls+'" data-c="'+ci+'" data-k="'+k+'"><i>'+(sp?'⭐':'🎁')+'</i><b>'+(ci*6+k+1)+'</b></div>'}).join('')+'</div>').join('')+'<button class="btn" id="rs2" style="align-self:flex-start;font-size:20px;padding:8px 18px;background:#345a49">⟲ Neustart</button>';
- $('rs2').onclick=resetAll;
+  return '<div class="door '+(sp?'sp ':'')+cls+'" data-c="'+ci+'" data-k="'+k+'"><i>'+(sp?'⭐':'🎁')+'</i><b>'+(ci*6+k+1)+'</b></div>'}).join('')+'</div>').join('');
  V.querySelectorAll('.door').forEach(d=>d.onclick=()=>openDoor(d,+d.dataset.c,+d.dataset.k));
 }
 async function openDoor(el,c,k){
@@ -133,17 +150,71 @@ async function openDoor(el,c,k){
  calendar();
 }
 
+/* Fassaden-Theme: Türchen sitzen in den Fenstern des Fotos (Positionen in Foto-Pixeln, per Pfeiltasten justierbar) */
+let PH=Object.assign({x:491.5,dx:30.3,y:103.5,dy:25.2},JSON.parse(localStorage.ph61||'{}'));const SC=3.14,OX=-107.5;
+function place(){document.querySelectorAll('.fw:not(.ill)').forEach(d=>{const w=PH.dx*SC*.8,hh=PH.dy*SC*.85;d.style.width=w+'px';d.style.height=hh+'px';d.style.left=((PH.x+d.dataset.c*PH.dx)*SC+OX-w/2)+'px';d.style.top=((PH.y+d.dataset.k*PH.dy)*SC-hh/2)+'px'})}
+const clearFac=()=>{const f=$('fac');if(f)f.remove()};
+function corner(on){let b=$('rsb');if(!b){$('st').insertAdjacentHTML('beforeend','<button id="rsb">⟲ Reset</button>');b=$('rsb');b.onclick=resetAll}b.style.display=on?'block':'none'}
+function calFac(cur){
+ V.innerHTML='<div id="lgs">'+Q.categories.map((c,ci)=>'<div class="lg c'+ci+'">'+c.icon+' '+esc(c.name)+'<span>Türchen '+(ci*6+1)+'–'+(ci*6+6)+'</span></div>').join('')+'</div>';
+ let h='';
+ Q.categories.forEach((c,ci)=>{for(let k=0;k<6;k++){const sp=k===5,key=ckey(ci,sp?'s':'q',k),cls=done[key]?'done':ci!==cur?'lock':sp&&![0,1,2,3,4].every(i=>done[ckey(ci,'q',i)])?'lock':'';
+  h+='<div class="door fw c'+ci+' '+(sp?'sp ':'')+cls+'" style="animation-delay:'+((k*4+ci)*.09)+'s" data-c="'+ci+'" data-k="'+k+'"><i>'+(sp?'⭐':'🎁')+'</i><b>'+(ci*6+k+1)+'</b></div>'}});
+ $('st').insertAdjacentHTML('beforeend','<div id="fac">'+h+'</div>');place();
+ document.querySelectorAll('#fac .door').forEach(d=>d.onclick=()=>openDoor(d,+d.dataset.c,+d.dataset.k));
+}
+
+/* Theme D: gezeichnetes Dienstgebäude – Fenster und Türchen werden aus denselben Koordinaten erzeugt, sitzen also immer richtig */
+const WX=[540,665,790,1130,1255,1380],RY=[410,535,660,785],RL=x=>250+(x-300)*50/1320;
+function illuSvg(){
+ let r=7;const rnd=()=>(r=(r*9301+49297)%233280)/233280,L=RL;
+ let s='<svg id="ill" viewBox="0 0 1920 1080"><defs><pattern id="br" width="64" height="30" patternUnits="userSpaceOnUse"><rect width="64" height="30" fill="#8a372a"/><path d="M0 15H64M32 0V15M0 15V30M64 15V30" stroke="#682a1f" stroke-width="2" fill="none"/></pattern><linearGradient id="gl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff0b8"/><stop offset="1" stop-color="#f2b94a"/></linearGradient><linearGradient id="gd" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f4f8ff"/><stop offset="1" stop-color="#b7c8e8"/></linearGradient><radialGradient id="mo"><stop offset="0" stop-color="#fff8d8"/><stop offset="1" stop-color="#fff8d800"/></radialGradient></defs>';
+ for(let i=0;i<70;i++)s+='<circle class="tl" cx="'+(rnd()*1920|0)+'" cy="'+(rnd()*220+10|0)+'" r="'+(1+rnd()*2).toFixed(1)+'" fill="#fff" style="animation-delay:-'+(rnd()*4).toFixed(1)+'s"/>';
+ s+='<circle cx="1790" cy="150" r="120" fill="url(#mo)"/><circle cx="1790" cy="150" r="48" fill="#fff6cf"/><circle cx="1773" cy="138" r="9" fill="#e9dfae"/><circle cx="1806" cy="166" r="6" fill="#e9dfae"/>';
+ s+='<path d="M0,962 Q300,940 620,960 T1240,958 T1920,950 V1080 H0Z" fill="url(#gd)"/>';
+ s+='<polygon points="300,250 1520,300 1520,965 300,965" fill="url(#br)"/><polygon points="300,250 1520,300 1520,965 300,965" fill="#000" opacity=".16"/>';
+ s+='<rect x="860" y="222" width="200" height="743" fill="url(#br)"/><rect x="848" y="212" width="224" height="26" fill="#5a2218"/><rect x="848" y="202" width="224" height="14" rx="6" fill="#fff"/><text x="960" y="192" font-size="64" text-anchor="middle">⭐</text>';
+ RY.forEach(y=>{WX.forEach(x=>{s+='<rect x="'+(x-58)+'" y="'+(y-52)+'" width="116" height="104" fill="#f1e8d0"/><rect x="'+(x-50)+'" y="'+(y-44)+'" width="100" height="88" fill="url(#gl)"/><path d="M'+x+','+(y-44)+'V'+(y+44)+'M'+(x-50)+','+y+'H'+(x+50)+'" stroke="#f1e8d0" stroke-width="5"/><rect x="'+(x-64)+'" y="'+(y+50)+'" width="128" height="10" rx="5" fill="#fff"/>'});
+  s+='<rect x="880" y="'+(y-46)+'" width="160" height="92" fill="#f1e8d0"/><rect x="886" y="'+(y-40)+'" width="148" height="80" fill="url(#gl)"/><path d="M936,'+(y-40)+'V'+(y+40)+'M984,'+(y-40)+'V'+(y+40)+'" stroke="#f1e8d0" stroke-width="5"/><rect x="874" y="'+(y+44)+'" width="172" height="10" rx="5" fill="#fff"/>'});
+ [560,660,760,1130,1230,1330,1430].forEach(x=>{s+='<rect x="'+(x-38)+'" y="866" width="76" height="86" fill="url(#gl)" stroke="#f1e8d0" stroke-width="6"/>'});
+ s+='<rect x="905" y="866" width="110" height="99" fill="#3a2a1a"/><rect x="915" y="876" width="90" height="89" fill="url(#gl)"/><polygon points="892,864 1028,864 1042,838 878,838" fill="#c8102e"/>';
+ s+='<path d="M330,965V860A65,65 0 0 1 460,860V965Z" fill="#241326"/><path d="M345,965V860A50,50 0 0 1 445,860V965Z" fill="#ffcf6b" opacity=".28"/>';
+ s+='<circle cx="395" cy="770" r="46" fill="none" stroke="#1f6b32" stroke-width="22"/><circle cx="395" cy="770" r="46" fill="none" stroke="#6fcf7a" stroke-width="4" stroke-dasharray="3 8"/>';
+ for(let i=0;i<9;i++){const a=i*40*Math.PI/180;s+='<circle cx="'+(395+46*Math.cos(a)).toFixed(0)+'" cy="'+(770+46*Math.sin(a)).toFixed(0)+'" r="6" fill="#d62839"/>'}
+ s+='<polygon points="395,806 365,832 375,800" fill="#d62839"/><polygon points="395,806 425,832 415,800" fill="#d62839"/><circle cx="395" cy="806" r="9" fill="#a3111f"/>';
+ let t='M300,'+(L(300)+4);for(let x=300;x+44<=1520;x+=44)t+=' Q'+(x+22)+','+(L(x+22)-30).toFixed(0)+' '+(x+44)+','+(L(x+44)+2).toFixed(0);
+ s+='<path d="'+t+' L1520,'+(L(1520)+20)+' L300,'+(L(300)+20)+'Z" fill="#fff"/>';
+ for(let x=312;x<1510;x+=40){const l=14+Math.abs(Math.sin(x))*26;s+='<polygon points="'+x+','+(L(x)+18)+' '+(x+14)+','+(L(x)+18)+' '+(x+7)+','+(L(x)+18+l).toFixed(0)+'" fill="url(#gd)"/>'}
+ let g='M300,'+(L(300)+46);for(let x=300;x+110<=1520;x+=110)g+=' Q'+(x+55)+','+(L(x+55)+78).toFixed(0)+' '+(x+110)+','+(L(x+110)+46).toFixed(0);
+ s+='<path d="'+g+'" fill="none" stroke="#1f6b32" stroke-width="10" stroke-linecap="round"/><path d="'+g+'" fill="none" stroke="#6fcf7a" stroke-width="3" stroke-dasharray="2 9"/>';
+ for(let x=300,i=0;x+110<=1520;x+=110,i++){s+='<circle cx="'+x+'" cy="'+(L(x)+46).toFixed(0)+'" r="11" fill="'+['#d62839','#f5c542'][i%2]+'"/>';[.25,.5,.75].forEach((u,j)=>{s+='<circle class="tl" cx="'+(x+110*u)+'" cy="'+(L(x+110*u)+46+64*u*(1-u)).toFixed(0)+'" r="6" fill="'+['#ffd36b','#fff','#ff7b8a'][(i+j)%3]+'" style="animation-delay:-'+((i*3+j)*.37%2.4).toFixed(1)+'s"/>'})}
+ const tree=(cx,b,h)=>{let q='';for(let i=0;i<3;i++){const w=h*(.34-i*.07),y=b-h*(.3+i*.26);q+='<polygon points="'+(cx-w)+','+(y+h*.3)+' '+(cx+w)+','+(y+h*.3)+' '+cx+','+y+'" fill="#1f6b32"/><path d="M'+(cx-w*.8)+','+(y+h*.22)+'Q'+cx+','+(y+h*.12)+' '+(cx+w*.8)+','+(y+h*.22)+'L'+cx+','+y+'Z" fill="#fff" opacity=".85"/>'}
+  q+='<rect x="'+(cx-9)+'" y="'+(b-h*.1)+'" width="18" height="'+h*.1+'" fill="#5a3a1c"/><text x="'+cx+'" y="'+(b-h*.97)+'" font-size="44" text-anchor="middle">⭐</text>';
+  for(let i=0;i<7;i++)q+='<circle class="tl" cx="'+(cx+(i%2?1:-1)*(10+i*h*.035))+'" cy="'+(b-h*(.2+i*.1))+'" r="6" fill="'+['#d62839','#ffd36b','#7bc4ff'][i%3]+'" style="animation-delay:-'+(i*.5)+'s"/>';return q};
+ s+=tree(1620,975,300)+tree(1770,985,220)+tree(120,985,140);
+ return s+'</svg>';
+}
+function calIllu(cur){
+ V.innerHTML='';
+ let h=Q.categories.map((c,ci)=>'<div class="fl c'+ci+'" style="top:'+(RY[ci]-42)+'px">'+c.icon+' '+esc(c.name)+'</div>').join('');
+ Q.categories.forEach((c,ci)=>{for(let k=0;k<6;k++){const sp=k===5,key=ckey(ci,sp?'s':'q',k),cls=done[key]?'done':ci!==cur?'lock':sp&&![0,1,2,3,4].every(i=>done[ckey(ci,'q',i)])?'lock':'';
+  h+='<div class="door fw ill c'+ci+' '+(sp?'sp ':'')+cls+'" style="left:'+(WX[k]-48)+'px;top:'+(RY[ci]-42)+'px;width:96px;height:84px;animation-delay:'+((ci*6+k)*.07)+'s" data-c="'+ci+'" data-k="'+k+'"><i>'+(sp?'⭐':'🎁')+'</i><b>'+(ci*6+k+1)+'</b></div>'}});
+ $('st').insertAdjacentHTML('beforeend','<div id="fac">'+illuSvg()+'<div class="santa">🦌🦌🛷</div>'+h+'</div>');
+ document.querySelectorAll('#fac .door').forEach(d=>d.onclick=()=>openDoor(d,+d.dataset.c,+d.dataset.k));
+}
+
 /* Reset: löscht Teilnehmerinnen, Antworten, Punkte und merkt sich alle Türchen als ungeöffnet */
 async function resetAll(){if(!confirm('Wirklich alles zurücksetzen? Teilnehmerinnen, Punkte und geöffnete Türchen werden gelöscht.'))return;await rpc('host_reset');localStorage.d61='{}';location.reload()}
 
 /* Lobby */
 async function lobby(){
 
- V.innerHTML='<div style="display:flex;gap:80px;align-items:center"><div id="qr" style="background:#fff;padding:24px;border-radius:24px"></div><div><h2>Mitspielen!</h2><div style="font-size:42px;line-height:1.4">1. QR-Code scannen<br>2. Spitznamen + Icon wählen<br>3. Auf den Beamer schauen 🎅</div></div></div><div id="pl"></div><div style="display:flex;margin-top:auto"><button class="btn" id="rs" style="background:#345a49;font-size:22px;padding:8px 18px;margin:0">⟲ Reset</button><button class="btn" id="go">Adventskalender öffnen ➜</button></div>';
+ V.innerHTML='<div style="display:flex;gap:80px;align-items:center"><div id="qr" style="background:#fff;padding:24px;border-radius:24px"></div><div><h2>Mitspielen!</h2><div style="font-size:42px;line-height:1.4">1. QR-Code scannen<br>2. Spitznamen + Icon wählen<br>3. Auf den Beamer schauen 🎅</div></div></div><div id="pl"></div><div style="display:flex;margin-top:auto;align-items:center"><button class="btn" id="go" style="margin:0">Adventskalender öffnen ➜</button><button class="btn" id="mu" style="margin:0 0 0 auto;background:linear-gradient(#2f6b3a,#1d4a27)">🔊 Musik starten</button></div>';
  new QRCode($('qr'),{text:CFG.site,width:460,height:460});
  set('lobby').catch(()=>{});
  const seen=new Set(),iv=setInterval(async()=>{(await players()).forEach(p=>{if(!seen.has(p.id)){seen.add(p.id);$('pl').insertAdjacentHTML('beforeend','<span>'+p.icon+' '+esc(p.name)+'</span>')}})},1500);
- $('rs').onclick=resetAll;
+ $('mu').onclick=()=>{Music.start();$('mu').textContent='🎶 Musik läuft (M = stumm)'};
+ clearFac();corner(true);
  await click('go');clearInterval(iv);calendar();
 }
 

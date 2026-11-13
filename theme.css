@@ -75,8 +75,10 @@ body:not(:has(#st)){min-height:100vh;background:radial-gradient(ellipse at 50% 0
 #app .bar{height:12px;margin:10px 0}
 
 /* Multiple Choice am Handy: 2x2-Kacheln, bei langen Texten untereinander */
-.mc{grid-template-columns:1fr 1fr;grid-auto-rows:minmax(120px,auto);gap:12px;margin-top:12px}
-.mc.l1{grid-template-columns:1fr;grid-auto-rows:minmax(72px,auto)}
+.mc{grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:1fr;gap:12px;margin-top:12px}
+.mc.l1{grid-template-columns:minmax(0,1fr);grid-auto-rows:1fr}
+.mc button{height:100%;min-height:96px}
+.mc.l1 button{min-height:72px}
 .mc button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;font-size:19px;line-height:1.25;padding:14px 10px;width:100%;overflow-wrap:anywhere}
 .mc.l1 button{flex-direction:row;justify-content:flex-start;text-align:left;gap:14px;padding:14px 16px}
 .mc button i{font-style:normal;font-size:30px;opacity:.85}

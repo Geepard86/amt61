@@ -1,0 +1,67 @@
+/* Alternative Themes. Umschalten am Beamer mit der Taste T. */
+@keyframes winlight{0%{filter:brightness(.25) saturate(.5)}100%{filter:none}}
+@keyframes tw{from{opacity:.25}to{opacity:1}}
+@keyframes blink{50%{filter:brightness(.45)}}
+@keyframes pulse{50%{box-shadow:0 0 38px #ffd36bcc,0 0 0 4px #ffd36b44}}
+#toast{position:absolute;right:50px;bottom:40px;z-index:20;background:#000c;color:#fff3d6;font-size:30px;padding:10px 24px;border-radius:14px;border:2px solid #d9a93a;opacity:0;transition:opacity .4s;pointer-events:none}
+#toast.on{opacity:1}
+
+/* Theme B: Dienstgebäude – die Türchen sind Fenster, die nacheinander angehen */
+#st.th-b{background:repeating-linear-gradient(0deg,#0000 0 38px,#0005 38px 40px),repeating-linear-gradient(90deg,#0000 0 78px,#0003 78px 80px),linear-gradient(#9a6244,#6e4630)}
+.th-b:before{border-color:#efe6d0;box-shadow:inset 0 0 0 8px #5a3a28,inset 0 0 0 10px #efe6d066}
+.th-b h1{display:block;width:max-content;margin:6px auto 18px;padding:6px 40px;background:#2b1a12;-webkit-background-clip:border-box;background-clip:border-box;color:#f6e7c1;border:4px solid #efe6d0;border-radius:10px;animation:none;box-shadow:0 8px 16px #0007}
+.th-b .row{background:linear-gradient(#d8ccae,#b7a782);border:3px solid #6e5a3a;box-shadow:inset 0 -12px 0 #0002,0 10px 14px #0007}
+.th-b .lab{color:#3b2412;text-shadow:none;font-size:30px}
+.th-b .door{width:150px;height:150px;border-radius:75px 75px 6px 6px;background:linear-gradient(#fff0b8,#f2b94a);border:7px solid #efe6d0;box-shadow:0 0 0 3px #6e5a3a,0 0 26px #ffcc5588;animation:pop .5s both,winlight 1.6s both}
+.th-b .door:before{content:"";position:absolute;inset:0;border-radius:inherit;z-index:1;pointer-events:none;background:linear-gradient(#0000 0 48%,#6e5a3a 48% 52%,#0000 52%),linear-gradient(90deg,#0000 0 48%,#6e5a3a 48% 52%,#0000 52%)}
+.th-b .door b{z-index:2;border-radius:68px 68px 3px 3px;font-size:52px;background:linear-gradient(135deg,#3b6a8c,#223f56);border:4px solid #efe6d0;box-shadow:inset 0 0 0 6px #1a2f42,0 4px 10px #0008;color:#f6e7c1}
+.th-b .door b:after{display:none}
+.th-b .door i{z-index:0;font-size:70px}
+.th-b .door.sp b{background:linear-gradient(135deg,#7a2a3a,#4a1220)}
+
+/* Theme C: magisch – Sternenhimmel, Lichterkette, leuchtende Türchen */
+#st.th-c{background:radial-gradient(ellipse at 50% 120%,#4a2580,#14143f 55%,#070a24)}
+.th-c #fx:after,.th-c:after{content:"";position:absolute;inset:0;pointer-events:none;z-index:0;background-image:radial-gradient(2px 2px at 20px 30px,#fff,#0000),radial-gradient(2px 2px at 160px 120px,#ffe9a8,#0000),radial-gradient(1.5px 1.5px at 300px 60px,#fff,#0000),radial-gradient(2px 2px at 90px 170px,#bfe3ff,#0000);background-size:340px 210px;animation:tw 3s ease-in-out infinite alternate}
+.th-c:before{border-color:#9ad8ff;box-shadow:inset 0 0 0 8px #14143f,inset 0 0 0 10px #9ad8ff55}
+.th-c h1{color:transparent;background:linear-gradient(90deg,#ffd36b,#fff,#9ad8ff,#fff,#ffd36b);background-size:300% 100%;-webkit-background-clip:text;background-clip:text}
+.th-c h1:before{content:"";position:absolute;left:-90px;right:-90px;top:-22px;height:30px;pointer-events:none;background:radial-gradient(circle,#ffd36b 0 7px,#0000 8px) 0 0/64px 30px,radial-gradient(circle,#ff6b8a 0 7px,#0000 8px) 32px 10px/64px 30px,radial-gradient(circle,#7be07b 0 6px,#0000 7px) 16px 4px/64px 30px;animation:blink 1.8s ease-in-out infinite;-webkit-text-fill-color:initial}
+.th-c .row{background:#ffffff12;border-color:#9ad8ff55}
+.th-c .lab{color:#ffe9a8;text-shadow:0 0 14px #ffd36b}
+.th-c .door{box-shadow:0 0 22px #ffd36b66;background:radial-gradient(circle,#fff3c4,#ffbf47)}
+.th-c .door:not(.done):not(.lock){animation:pop .5s both,pulse 2.8s 1s ease-in-out infinite}
+.th-c .door b{background:linear-gradient(135deg,#2b45a8,#15216a);border-color:#9ad8ff;box-shadow:inset 0 0 0 7px #1b2c8a,inset 0 0 0 9px #9ad8ff88,0 8px 16px #000a;color:#ffe9a8;text-shadow:0 0 14px #ffd36b}
+.th-c .door.sp b{background:linear-gradient(135deg,#7a2fa8,#3d146a)}
+.th-c .q,.th-c .rk,.th-c #md div,.th-c #pl span{background:linear-gradient(160deg,#1f2f7a,#131c4d);color:#fff3d6;border-color:#9ad8ff;box-shadow:0 10px 30px #000a,0 0 24px #6bb8ff44}
+.th-c .rk:nth-child(2){background:linear-gradient(160deg,#6b4bd1,#3b2a8f);transform:scale(1.04)}
+.th-c .rk em{color:#ffd36b}
+
+/* Theme B mit Foto: Fenster des Dienstgebäudes = Türchen */
+#st.th-b{background:linear-gradient(#0a0f2077,#0a0f2055 45%,#0a0f20cc),url(assets/dienstgebaeude.png) center/cover no-repeat}
+#fac{position:absolute;inset:0;z-index:3;pointer-events:none}
+#fac .door{position:absolute;pointer-events:none}
+#fac .door:not(.done):not(.lock){pointer-events:auto}
+.th-b .door.fw{border-width:4px;border-radius:3px}
+.th-b .door.fw b{font-size:30px;border-radius:2px;border-width:3px;box-shadow:inset 0 0 0 3px #1a2f42,0 3px 8px #000a}
+.th-b .door.fw i{font-size:34px}
+.th-b .door.fw.c0 b{border-color:#ffd36b}.th-b .door.fw.c1 b{border-color:#7be07b}.th-b .door.fw.c2 b{border-color:#ff8a8a}.th-b .door.fw.c3 b{border-color:#7bc4ff}
+#lgs{display:flex;flex-direction:column;gap:14px;width:540px;margin-top:20px}
+.lg{font:700 32px "Cinzel Decorative",Georgia,serif;background:#000b;padding:14px 22px;border-radius:14px;border-left:14px solid;animation:rise .6s both}
+.lg span{display:block;font:20px Lora,serif;color:#d8c9a8;margin-top:2px}
+.lg.c0{border-color:#ffd36b}.lg.c1{border-color:#7be07b}.lg.c2{border-color:#ff8a8a}.lg.c3{border-color:#7bc4ff}
+#rsb{position:absolute;top:26px;right:48px;z-index:30;font:20px Lora,serif;padding:6px 16px;border-radius:10px;border:2px solid #d9a93a88;background:#0007;color:#fff3d6;opacity:.45;cursor:pointer}
+#rsb:hover{opacity:1}
+
+/* Theme D: gezeichnetes, weihnachtliches Dienstgebäude (Fenster = Türchen) */
+@keyframes fly{from{transform:translate(-300px,0)}50%{transform:translate(1000px,-26px)}to{transform:translate(2300px,0)}}
+#st.th-d{background:linear-gradient(#0b1840,#1f3a7a 55%,#e29a5c 100%)}
+#ill{pointer-events:none}
+.tl{animation:tw 2.4s ease-in-out infinite alternate}
+.santa{position:absolute;top:120px;left:0;font-size:64px;white-space:nowrap;animation:fly 26s linear infinite;pointer-events:none}
+.fl{position:absolute;left:34px;width:250px;padding:10px 12px;font:700 23px/1.25 "Cinzel Decorative",Georgia,serif;text-align:center;color:#fff3d6;background:linear-gradient(#4a2c18,#2b1a12);border:4px solid;border-radius:12px;box-shadow:0 8px 14px #0008;animation:rise .6s both}
+.fl.c0{border-color:#ffd36b}.fl.c1{border-color:#7be07b}.fl.c2{border-color:#ff9a9a}.fl.c3{border-color:#7bc4ff}
+.th-d .door.fw{border:4px solid #efe6d0;border-radius:4px;background:linear-gradient(#fff0b8,#f2b94a);animation:pop .5s both,winlight 1.6s both}
+.th-d .door.fw b{font-size:36px;border-radius:2px;border-width:3px;background:linear-gradient(135deg,#b02a3c,#7a1523);box-shadow:inset 0 0 0 3px #7a1523,0 3px 8px #000a}
+.th-d .door.fw b:before{content:"";position:absolute;left:-7px;right:-7px;top:-12px;height:15px;background:#fff;border-radius:10px;box-shadow:0 2px 3px #0006}
+.th-d .door.fw.sp b{background:linear-gradient(135deg,#1f6b3a,#0f3a22);box-shadow:inset 0 0 0 3px #0f3a22,0 3px 8px #000a}
+.th-d .door.fw i{font-size:40px}
+.th-d .door.fw.c0 b{border-color:#ffd36b}.th-d .door.fw.c1 b{border-color:#7be07b}.th-d .door.fw.c2 b{border-color:#ff9a9a}.th-d .door.fw.c3 b{border-color:#7bc4ff}

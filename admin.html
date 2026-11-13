@@ -130,6 +130,7 @@ function editor(){
  var q=cur(),c=D.categories[sel.c],h='';
  h+='<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b>'+esc(c.name)+'</b><span class="tag">'+(sel.s==='specials'?'Spezialfrage':'Frage '+(sel.i+1)+' von '+c.questions.length)+'</span></div>';
  h+=field('Kategorie-Name &amp; Intro (gilt für die ganze Kategorie)','<div class="g"><input data-cat="name" value="'+esc(c.name)+'"><input data-cat="intro" value="'+esc(c.intro)+'"></div>');
+ h+=field('Zeit für die ganze Kategorie (Sekunden)','<div style="display:flex;gap:8px"><input type="number" id="ctm" value="'+(q.timeLimit||20)+'" style="max-width:120px"><button id="cap">Auf alle Fragen dieser Kategorie anwenden</button></div>');
  h+=field('Fragetyp','<select data-k="type">'+Object.keys(TYPE).map(function(k){return '<option value="'+k+'"'+(q.type===k?' selected':'')+'>'+TYPE[k]+'</option>'}).join('')+'</select>');
  h+=field('Fragetext','<textarea data-k="text" style="font-family:inherit;font-size:16px">'+esc(q.text)+'</textarea>');
  if(q.type==='mc'){
@@ -154,7 +155,7 @@ function editor(){
   }
   h+=field('Antwort testen (Fuzzy-Match)','<input id="tst" placeholder="Tippfehler ausprobieren …"><div id="res"></div>');
  }
- h+=field('Zeit in Sekunden','<input type="number" data-k="timeLimit" value="'+(q.timeLimit||20)+'" style="max-width:120px">');
+ h+=field('Zeit nur für diese Frage (Sekunden)','<input type="number" data-k="timeLimit" value="'+(q.timeLimit||20)+'" style="max-width:120px">');
  $('ed').innerHTML=h;
  if(q.reveal==='steps')stp();
  if(q.reveal==='pixelate'||q.reveal==='zoom')prev();
@@ -237,7 +238,8 @@ $('ed').addEventListener('change',function(e){
  if(t.id==='fimg'&&f){q.image='assets/'+f.name;blobs.set(q,Object.assign(blobs.get(q)||{},{i:URL.createObjectURL(f)}));save();tree();editor()}
  if(t.id==='faud'&&f){q.audio='assets/'+f.name;blobs.set(q,Object.assign(blobs.get(q)||{},{a:URL.createObjectURL(f)}));save();tree();editor()}
 });
-$('ed').addEventListener('click',function(e){if(e.target.id==='pl')play(cur());if(e.target.id==='st')stop()});
+$('ed').addEventListener('click',function(e){if(e.target.id==='cap'){var s=+$('ctm').value;if(s>0){var cc=D.categories[sel.c];cc.questions.concat(cc.specials).forEach(function(x){x.timeLimit=s});save();editor();$('ctm').value=s}}
+ if(e.target.id==='pl')play(cur());if(e.target.id==='st')stop()});
 $('jbtn').onclick=function(){var s=$('js').style;s.display=s.display==='none'?'block':'none';$('jt').value=JSON.stringify(D,null,1)};
 $('jgen').onclick=function(){$('jt').value=JSON.stringify(D,null,1);$('jt').select()};
 $('jload').onclick=function(){try{var n=JSON.parse($('jt').value);if(!n.categories)throw 0;D=n;sel={c:0,s:'questions',i:0};save();tree();editor()}catch(x){alert('Das JSON ist ungültig.')}};
