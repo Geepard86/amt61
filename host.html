@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="de"><head><meta charset="utf-8"><title>Amt 61 – Beamer</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Lora:wght@500;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="theme.css"><link rel="stylesheet" href="theme2.css"></head><body><div id="st" class="th-d"><div id="fx"></div><h1>🎄 Amt 61 – Das Weihnachtsquiz</h1><div id="v"></div></div>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Lora:wght@500;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="theme.css"><link rel="stylesheet" href="theme2.css"></head><body><div id="st"><div id="fx"></div><h1>🎄 Amt 61 – Das Weihnachtsquiz</h1><div id="v"></div></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="config.js"></script>
@@ -11,10 +11,14 @@ const sb=supabase.createClient(CFG.url,CFG.key,{auth:{persistSession:false,autoR
 const fit=()=>document.getElementById('st').style.transform='translate(-50%,-50%) scale('+Math.min(innerWidth/1920,innerHeight/1080)+')';
 addEventListener('resize',fit);fit();snow(document.getElementById('fx'),45);
 document.getElementById('st').insertAdjacentHTML('beforeend','<div id="toast"></div>');
+let ti=+localStorage.th61||0;const TH=['th-a','th-d'];
+const applyTh=()=>{document.getElementById('st').className=TH[ti]};applyTh();
+const switchTh=()=>{ti=1-ti;localStorage.th61=ti;applyTh();toast('🎨 Theme: '+['Pergament','Gezeichnetes Gebäude'][ti]);if(document.querySelector('#v .door')||$('fac'))calendar()};
 let tt;const toast=m=>{const e=document.getElementById('toast');e.textContent=m;e.classList.add('on');clearTimeout(tt);tt=setTimeout(()=>e.classList.remove('on'),1800)};
 addEventListener('click',()=>Music.start(),{once:true});
 addEventListener('keydown',e=>{const k=e.key.toLowerCase();
- if(k==='m')toast(Music.toggle()?'🔇 Musik aus':'🔊 Musik an');
+ if(k==='t')switchTh();
+ else if(k==='m')toast(Music.toggle()?'🔇 Musik aus':'🔊 Musik an');
  else if(k==='+'||k==='=')toast('🔊 Lautstärke '+Music.louder(.1)+' %');
  else if(k==='-')toast('🔉 Lautstärke '+Music.louder(-.1)+' %');});
 const COL=['#9b1c2c','#1f4e79','#a8741a','#2f6b3a'],SYM=['▲','◆','●','■'];
@@ -84,7 +88,7 @@ function media(q,secs){
 /* Eine Frage durchspielen */
 async function play(q,k,tag){
  const secs=q.timeLimit||20,np=(await players()).length,off=['audio','synth','rhythm'].includes(q.reveal);
- Music.mode(off?'off':'quiz');clearFac();corner(false);
+ Music.mode(off?'off':'quiz',off?.8:3);clearFac();corner(false);
  const t0=new Date(await set('question',{qkey:k,type:q.type,text:q.text,options:q.options,unit:q.unit,secs},secs));
  V.innerHTML='<div style="font-size:34px;color:#f5c542">'+esc(tag)+'</div><div class="q">'+esc(q.text)+'</div><div class="bar"><i id="bar"></i></div>'
   +(q.type==='mc'?'<div class="opts">'+q.options.map((o,i)=>'<div class="opt" style="background:'+COL[i]+'">'+SYM[i]+'  '+esc(o)+'</div>').join('')+'</div>':q.type==='estimate'?'<div style="font-size:50px;margin-top:30px">Schätze! '+(q.unit?'(in '+esc(q.unit)+')':'')+'</div>':'')
@@ -99,7 +103,7 @@ async function play(q,k,tag){
  const ans=(await sb.from('answers').select('player_id,value,created_at').eq('qkey',k)).data||[];
  const {out,ok}=score(q,ans,t0);
  await rpc('host_scores',{deltas:Object.entries(out).map(([id,p])=>({id,p}))});
- Music.mode('menu');await set('reveal',{qkey:k,out});if(ok.length)burst($('st'));
+ Music.mode('menu',3.5);await set('reveal',{qkey:k,out});if(ok.length)burst($('st'));
  const P=Object.fromEntries((await players()).map(p=>[p.id,p]));
  const right=q.type==='mc'?q.options[q.correct]:q.type==='estimate'?q.answer+(q.unit?' '+q.unit:''):(q.answers||[])[0];
  V.innerHTML='<div class="q">'+esc(q.text)+'</div><h2 style="color:#9be7a8;margin-top:30px">✅ '+esc(right)+'</h2>'
@@ -126,9 +130,17 @@ function calendar(){
  set('calendar');
  const cur=Q.categories.findIndex((_,c)=>!allDone(c));
  if(cur<0)return ranking(true);
- calIllu(cur);
+ if(ti===1)return calIllu(cur);
+ calRows(cur);
+}
+function calRows(cur){
+ V.innerHTML=Q.categories.map((c,ci)=>'<div class="row"><div class="lab">'+c.icon+' '+esc(c.name)+'</div>'+[0,1,2,3,4,5].map(k=>{
+  const sp=k===5,key=ckey(ci,sp?'s':'q',k),cls=done[key]?'done open':ci!==cur?'lock':sp&&![0,1,2,3,4].every(i=>done[ckey(ci,'q',i)])?'lock':'';
+  return '<div class="door '+(sp?'sp ':'')+cls+'" data-c="'+ci+'" data-k="'+k+'"><i>'+(done[key]?'🎄':sp?'⭐':'🎁')+'</i><b>'+(ci*6+k+1)+'</b></div>'}).join('')+'</div>').join('');
+ V.querySelectorAll('.door').forEach(d=>d.onclick=()=>openDoor(d,+d.dataset.c,+d.dataset.k));
 }
 async function openDoor(el,c,k){
+ Music.mode('off',1.3);Music.creak();
  el.classList.add('open');await wait(1100);
  const C=Q.categories[c];
  if(k<5){
@@ -142,56 +154,61 @@ async function openDoor(el,c,k){
 }
 
 /* Gezeichnetes Dienstgebäude: Fenster und Türchen entstehen aus denselben Koordinaten, sitzen also immer richtig */
-const WX=[430,550,670,1170,1300,1430],RY=[415,520,625,730],RL=x=>300-(x-260)*.077,AX=780;
+const WX=[650,770,890,1220,1340,1460],RY=[415,520,625,730],RL=x=>300-(x-260)*.077,AX=430;
 const clearFac=()=>{const f=$('fac');if(f)f.remove()};
 function corner(on){let b=$('rsb');if(!b){$('st').insertAdjacentHTML('beforeend','<button id="rsb">⟲ Reset</button>');b=$('rsb');b.onclick=resetAll}b.style.display=on?'block':'none'}
 function illuSvg(){
- let r=7;const rnd=()=>(r=(r*9301+49297)%233280)/233280,L=RL,P=(a,b)=>a+','+b;
- let s='<svg id="ill" viewBox="0 0 1920 1080"><defs><pattern id="br" width="64" height="30" patternUnits="userSpaceOnUse"><rect width="64" height="30" fill="#8a372a"/><path d="M0 15H64M32 0V15M0 15V30M64 15V30" stroke="#682a1f" stroke-width="2" fill="none"/></pattern><linearGradient id="gl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff0b8"/><stop offset="1" stop-color="#f2b94a"/></linearGradient><linearGradient id="gd" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f4f8ff"/><stop offset="1" stop-color="#b7c8e8"/></linearGradient><radialGradient id="mo"><stop offset="0" stop-color="#fff8d8"/><stop offset="1" stop-color="#fff8d800"/></radialGradient></defs>';
+ let r=7;const rnd=()=>(r=(r*9301+49297)%233280)/233280,L=RL,P=(a,b)=>a+','+b,F=n=>Math.round(n);
+ const arcs=(R,from,to,n,f)=>{let q='';for(let i=0;i<=n;i++){const a=Math.PI+i*Math.PI/n;q+=f(AX+R*Math.cos(a),860+R*Math.sin(a),i)}return q};
+ let s='<svg id="ill" viewBox="0 0 1920 1080"><defs><pattern id="br" width="64" height="30" patternUnits="userSpaceOnUse"><rect width="64" height="30" fill="#8a372a"/><path d="M0 15H64M32 0V15M0 15V30M64 15V30" stroke="#682a1f" stroke-width="2" fill="none"/></pattern><linearGradient id="gl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff0b8"/><stop offset="1" stop-color="#f2b94a"/></linearGradient><linearGradient id="gd" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f4f8ff"/><stop offset="1" stop-color="#b7c8e8"/></linearGradient><linearGradient id="gs" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe3a8"/><stop offset="1" stop-color="#dbe6f7"/></linearGradient><radialGradient id="mo"><stop offset="0" stop-color="#fff8d8"/><stop offset="1" stop-color="#fff8d800"/></radialGradient></defs>';
  for(let i=0;i<70;i++)s+='<circle class="tl" cx="'+(rnd()*1920|0)+'" cy="'+(rnd()*230+10|0)+'" r="'+(1+rnd()*2).toFixed(1)+'" fill="#fff" style="animation-delay:-'+(rnd()*4).toFixed(1)+'s"/>';
- s+='<circle cx="190" cy="190" r="110" fill="url(#mo)"/><circle cx="190" cy="190" r="46" fill="#fff6cf"/><circle cx="175" cy="179" r="8" fill="#e9dfae"/><circle cx="206" cy="205" r="6" fill="#e9dfae"/>';
+ s+='<circle cx="1850" cy="190" r="110" fill="url(#mo)"/><circle cx="1850" cy="190" r="46" fill="#fff6cf"/><circle cx="1835" cy="179" r="8" fill="#e9dfae"/><circle cx="1866" cy="205" r="6" fill="#e9dfae"/>';
  s+='<path d="M0,1000 Q300,985 620,998 T1240,996 T1920,990 V1080 H0Z" fill="url(#gd)"/>';
- const body='300,'+L(300)+' 1560,'+L(1560)+' 1560,1000 300,1000';
+ const body='300,'+F(L(300))+' 1560,'+F(L(1560))+' 1560,1000 300,1000';
  s+='<polygon points="'+body+'" fill="url(#br)"/><polygon points="'+body+'" fill="#000" opacity=".16"/>';
- // Schnee, Eiszapfen und Lichterkette entlang der Dachkante
- let t='M300,'+(L(300)+4).toFixed(0);for(let x=300;x+44<=1560;x+=44)t+=' Q'+(x+22)+','+(L(x+22)-30).toFixed(0)+' '+(x+44)+','+(L(x+44)+2).toFixed(0);
- s+='<path d="'+t+' L1560,'+(L(1560)+20).toFixed(0)+' L300,'+(L(300)+20).toFixed(0)+'Z" fill="#fff"/>';
- for(let x=312;x<1550;x+=40){const l=14+Math.abs(Math.sin(x))*26;s+='<polygon points="'+P(x,(L(x)+18).toFixed(0))+' '+P(x+14,(L(x)+18).toFixed(0))+' '+P(x+7,(L(x)+18+l).toFixed(0))+'" fill="url(#gd)"/>'}
- let g='M300,'+(L(300)+46).toFixed(0);for(let x=300;x+110<=1560;x+=110)g+=' Q'+(x+55)+','+(L(x+55)+78).toFixed(0)+' '+(x+110)+','+(L(x+110)+46).toFixed(0);
+ let t='M300,'+F(L(300)+4);for(let x=300;x+44<=1560;x+=44)t+=' Q'+(x+22)+','+F(L(x+22)-30)+' '+(x+44)+','+F(L(x+44)+2);
+ s+='<path d="'+t+' L1560,'+F(L(1560)+20)+' L300,'+F(L(300)+20)+'Z" fill="#fff"/>';
+ for(let x=312;x<1550;x+=40){const l=14+Math.abs(Math.sin(x))*26;s+='<polygon points="'+P(x,F(L(x)+18))+' '+P(x+14,F(L(x)+18))+' '+P(x+7,F(L(x)+18+l))+'" fill="url(#gd)"/>'}
+ let g='M300,'+F(L(300)+46);for(let x=300;x+110<=1560;x+=110)g+=' Q'+(x+55)+','+F(L(x+55)+78)+' '+(x+110)+','+F(L(x+110)+46);
  s+='<path d="'+g+'" fill="none" stroke="#1f6b32" stroke-width="10" stroke-linecap="round"/><path d="'+g+'" fill="none" stroke="#6fcf7a" stroke-width="3" stroke-dasharray="2 9"/>';
- for(let x=300,i=0;x+110<=1560;x+=110,i++){s+='<circle cx="'+x+'" cy="'+(L(x)+46).toFixed(0)+'" r="11" fill="'+['#d62839','#f5c542'][i%2]+'"/>';[.25,.5,.75].forEach((u,j)=>{s+='<circle class="tl" cx="'+(x+110*u)+'" cy="'+(L(x+110*u)+46+64*u*(1-u)).toFixed(0)+'" r="6" fill="'+['#ffd36b','#fff','#ff7b8a'][(i+j)%3]+'" style="animation-delay:-'+((i*3+j)*.37%2.4).toFixed(1)+'s"/>'})}
- // mittiger Erkerturm
- s+='<rect x="890" y="190" width="180" height="810" fill="url(#br)"/><rect x="890" y="190" width="180" height="810" fill="#fff" opacity=".05"/><rect x="878" y="176" width="204" height="24" fill="#5a2218"/><rect x="878" y="164" width="204" height="16" rx="7" fill="#fff"/><text x="980" y="150" font-size="60" text-anchor="middle">⭐</text>';
- // hoher Turm rechts mit Antennen
+ for(let x=300,i=0;x+110<=1560;x+=110,i++){s+='<circle cx="'+x+'" cy="'+F(L(x)+46)+'" r="11" fill="'+['#d62839','#f5c542'][i%2]+'"/>';[.25,.5,.75].forEach((u,j)=>{s+='<circle class="tl" cx="'+(x+110*u)+'" cy="'+F(L(x+110*u)+46+64*u*(1-u))+'" r="6" fill="'+['#ffd36b','#fff','#ff7b8a'][(i+j)%3]+'" style="animation-delay:-'+((i*3+j)*.37%2.4).toFixed(1)+'s"/>'})}
+ // Schornstein
+ s+='<rect x="700" y="185" width="50" height="110" fill="url(#br)"/><rect x="700" y="185" width="50" height="110" fill="#000" opacity=".15"/><rect x="692" y="175" width="66" height="14" fill="#5a2218"/><rect x="692" y="166" width="66" height="13" rx="6" fill="#fff"/><circle class="tl" cx="728" cy="146" r="12" fill="#fff" opacity=".5"/><circle class="tl" cx="738" cy="120" r="16" fill="#fff" opacity=".4"/><circle class="tl" cx="726" cy="90" r="20" fill="#fff" opacity=".3"/>';
+ // Erkerturm Mitte und hoher Turm rechts
+ s+='<rect x="960" y="190" width="180" height="810" fill="url(#br)"/><rect x="960" y="190" width="180" height="810" fill="#fff" opacity=".05"/><rect x="948" y="176" width="204" height="24" fill="#5a2218"/><rect x="948" y="164" width="204" height="16" rx="7" fill="#fff"/>';
  s+='<rect x="1560" y="135" width="200" height="865" fill="url(#br)"/><rect x="1560" y="135" width="200" height="865" fill="#000" opacity=".08"/><rect x="1548" y="121" width="224" height="24" fill="#5a2218"/><rect x="1548" y="109" width="224" height="16" rx="7" fill="#fff"/><path d="M1620,109V48M1690,109V70" stroke="#c9c9c9" stroke-width="4"/><circle class="tl" cx="1620" cy="46" r="7" fill="#ff3b3b"/>';
  RY.forEach(y=>{WX.forEach(x=>{s+='<rect x="'+(x-56)+'" y="'+(y-48)+'" width="112" height="96" fill="#f1e8d0"/><rect x="'+(x-48)+'" y="'+(y-40)+'" width="96" height="80" fill="url(#gl)"/><path d="M'+x+','+(y-40)+'V'+(y+40)+'M'+(x-48)+','+y+'H'+(x+48)+'" stroke="#f1e8d0" stroke-width="5"/><rect x="'+(x-62)+'" y="'+(y+46)+'" width="124" height="9" rx="4" fill="#fff"/>'});
-  [[905,150],[1585,150]].forEach(a=>{s+='<rect x="'+a[0]+'" y="'+(y-46)+'" width="'+a[1]+'" height="92" fill="#f1e8d0"/><rect x="'+(a[0]+6)+'" y="'+(y-40)+'" width="'+(a[1]-12)+'" height="80" fill="url(#gl)"/><path d="M'+(a[0]+50)+','+(y-40)+'V'+(y+40)+'M'+(a[0]+a[1]-50)+','+(y-40)+'V'+(y+40)+'" stroke="#f1e8d0" stroke-width="5"/><rect x="'+(a[0]-6)+'" y="'+(y+44)+'" width="'+(a[1]+12)+'" height="9" rx="4" fill="#fff"/>'})});
- // Erdgeschoss
- [340,430,520,610].forEach(x=>{s+='<rect x="'+(x-34)+'" y="880" width="68" height="84" fill="url(#gl)" stroke="#f1e8d0" stroke-width="6"/>'});
- [1150,1250,1350,1450,1620,1710].forEach(x=>{s+='<rect x="'+(x-38)+'" y="872" width="76" height="100" fill="url(#gl)" stroke="#f1e8d0" stroke-width="6"/>'});
- s+='<rect x="950" y="900" width="60" height="100" fill="#3a2a1a"/><rect x="956" y="906" width="48" height="94" fill="url(#gl)"/><polygon points="934,898 1026,898 1038,870 922,870" fill="#c8102e"/>';
- // der Torbogen: Steinpfeiler, Backsteinring, Tannengirlande, Lichter, Kranz
- s+='<rect x="648" y="770" width="24" height="230" fill="#cdbf9f"/><rect x="888" y="770" width="24" height="230" fill="#cdbf9f"/>';
- s+='<path d="M670,1000V880A110,110 0 0 1 890,880V1000Z" fill="#b9a883"/><path d="M700,1000V880A80,80 0 0 1 860,880V1000Z" fill="#241326"/><path d="M712,1000V880A68,68 0 0 1 848,880V1000Z" fill="#ffcf6b" opacity=".3"/>';
- for(let i=0;i<=16;i++){const a=Math.PI+i*Math.PI/16;s+='<path d="M'+P((AX+84*Math.cos(a)).toFixed(0),(880+84*Math.sin(a)).toFixed(0))+'L'+P((AX+108*Math.cos(a)).toFixed(0),(880+108*Math.sin(a)).toFixed(0))+'" stroke="#8a6a4a" stroke-width="3"/>'}
- s+='<path d="M662,1000V880A118,118 0 0 1 898,880V1000" fill="none" stroke="#1f6b32" stroke-width="12"/><path d="M662,1000V880A118,118 0 0 1 898,880V1000" fill="none" stroke="#6fcf7a" stroke-width="3" stroke-dasharray="2 9"/>';
- for(let i=0;i<=20;i++){const a=Math.PI+i*Math.PI/20;s+='<circle class="tl" cx="'+(AX+118*Math.cos(a)).toFixed(0)+'" cy="'+(880+118*Math.sin(a)).toFixed(0)+'" r="6" fill="'+['#ffd36b','#fff','#ff7b8a'][i%3]+'" style="animation-delay:-'+(i*.3%2.4).toFixed(1)+'s"/>'}
- s+='<circle cx="780" cy="905" r="36" fill="none" stroke="#1f6b32" stroke-width="18"/><circle cx="780" cy="905" r="36" fill="none" stroke="#6fcf7a" stroke-width="3" stroke-dasharray="3 7"/>';
- for(let i=0;i<8;i++){const a=i*45*Math.PI/180;s+='<circle cx="'+(780+36*Math.cos(a)).toFixed(0)+'" cy="'+(905+36*Math.sin(a)).toFixed(0)+'" r="5" fill="#d62839"/>'}
- s+='<polygon points="780,938 756,962 764,934" fill="#d62839"/><polygon points="780,938 804,962 796,934" fill="#d62839"/><circle cx="780" cy="938" r="8" fill="#a3111f"/>';
- // Tannen
+  [[975,150],[1585,150]].forEach(a=>{s+='<rect x="'+a[0]+'" y="'+(y-46)+'" width="'+a[1]+'" height="92" fill="#f1e8d0"/><rect x="'+(a[0]+6)+'" y="'+(y-40)+'" width="'+(a[1]-12)+'" height="80" fill="url(#gl)"/><path d="M'+(a[0]+50)+','+(y-40)+'V'+(y+40)+'M'+(a[0]+a[1]-50)+','+(y-40)+'V'+(y+40)+'" stroke="#f1e8d0" stroke-width="5"/><rect x="'+(a[0]-6)+'" y="'+(y+44)+'" width="'+(a[1]+12)+'" height="9" rx="4" fill="#fff"/>'})});
+ [690,800,910,1220,1340,1460,1620,1710].forEach(x=>{s+='<rect x="'+(x-36)+'" y="876" width="72" height="92" fill="url(#gl)" stroke="#f1e8d0" stroke-width="6"/>'});
+ s+='<rect x="1020" y="900" width="60" height="100" fill="#3a2a1a"/><rect x="1026" y="906" width="48" height="94" fill="url(#gl)"/><polygon points="1004,898 1096,898 1108,870 992,870" fill="#c8102e"/>';
+ // Wand über dem Tor: großer Kranz und Schleifenband
+ s+='<circle cx="430" cy="500" r="76" fill="none" stroke="#1f6b32" stroke-width="30"/><circle cx="430" cy="500" r="76" fill="none" stroke="#6fcf7a" stroke-width="4" stroke-dasharray="3 9"/>';
+ for(let i=0;i<14;i++){const a=i*360/14*Math.PI/180;s+='<circle cx="'+F(430+76*Math.cos(a))+'" cy="'+F(500+76*Math.sin(a))+'" r="6" fill="#d62839"/><circle class="tl" cx="'+F(430+90*Math.cos(a+.2))+'" cy="'+F(500+90*Math.sin(a+.2))+'" r="4" fill="#ffd36b" style="animation-delay:-'+(i*.3%2.4).toFixed(1)+'s"/>'}
+ s+='<polygon points="430,424 392,404 396,446" fill="#d62839"/><polygon points="430,424 468,404 464,446" fill="#d62839"/><circle cx="430" cy="424" r="10" fill="#a3111f"/>';
+ s+='<path d="M338,612H522L508,650L522,688H338L352,650Z" fill="#c8102e" stroke="#ffd36b" stroke-width="3"/><text x="430" y="656" font-size="19" font-weight="700" text-anchor="middle" fill="#ffe9a8" font-family="Cinzel Decorative,Georgia,serif">Frohe Weihnachten</text>';
+ // der große Torbogen: Steinrahmen, Backsteinring, Tunnel mit Tiefe, Blick auf die Straße dahinter
+ s+='<path d="M298,1000V860A132,132 0 0 1 562,860V1000Z" fill="#cdbf9f"/><path d="M316,1000V860A114,114 0 0 1 544,860V1000Z" fill="url(#br)"/><path d="M334,1000V860A96,96 0 0 1 526,860V1000Z" fill="#2a1a2e"/><path d="M346,1000V860A84,84 0 0 1 514,860V1000Z" fill="#3d2c45"/><path d="M358,1000V860A72,72 0 0 1 502,860V1000Z" fill="#574462"/><path d="M372,1000V860A58,58 0 0 1 488,860V1000Z" fill="url(#gs)"/>';
+ s+=arcs(115,0,0,18,(x,y,i)=>'<path d="M'+P(F(x),F(y))+'L'+P(F(AX+(x-AX)*.84),F(860+(y-860)*.84))+'" stroke="#682a1f" stroke-width="3"/>')+arcs(123,0,0,18,(x,y,i)=>'<path d="M'+P(F(x),F(y))+'L'+P(F(AX+(x-AX)*1.07),F(860+(y-860)*1.07))+'" stroke="#a8977a" stroke-width="3"/>');
+ s+='<polygon points="334,1000 526,1000 488,925 372,925" fill="#e3ecfa" opacity=".9"/><path d="M470,1000V904" stroke="#333" stroke-width="4"/><circle class="tl" cx="470" cy="898" r="9" fill="#ffd36b"/><polygon points="400,990 390,990 395,950" fill="#2f6b3a"/><polygon points="408,990 392,990 400,940" fill="#2f6b3a"/>';
+ s+='<path d="M296,1000V860A134,134 0 0 1 564,860V1000" fill="none" stroke="#1f6b32" stroke-width="12"/><path d="M296,1000V860A134,134 0 0 1 564,860V1000" fill="none" stroke="#6fcf7a" stroke-width="3" stroke-dasharray="2 9"/>';
+ for(let i=0;i<=26;i++){const a=Math.PI+i*Math.PI/26;s+='<circle class="tl" cx="'+F(AX+134*Math.cos(a))+'" cy="'+F(860+134*Math.sin(a))+'" r="6" fill="'+['#ffd36b','#fff','#ff7b8a'][i%3]+'" style="animation-delay:-'+(i*.3%2.4).toFixed(1)+'s"/>'}
  const tree=(cx,b,h)=>{let q='';for(let i=0;i<3;i++){const w=h*(.34-i*.07),y=b-h*(.3+i*.26);q+='<polygon points="'+P(cx-w,y+h*.3)+' '+P(cx+w,y+h*.3)+' '+P(cx,y)+'" fill="#1f6b32"/><path d="M'+P(cx-w*.8,y+h*.22)+'Q'+P(cx,y+h*.12)+' '+P(cx+w*.8,y+h*.22)+'L'+P(cx,y)+'Z" fill="#fff" opacity=".85"/>'}
   q+='<rect x="'+(cx-9)+'" y="'+(b-h*.1)+'" width="18" height="'+h*.1+'" fill="#5a3a1c"/><text x="'+cx+'" y="'+(b-h*.97)+'" font-size="44" text-anchor="middle">⭐</text>';
   for(let i=0;i<7;i++)q+='<circle class="tl" cx="'+(cx+(i%2?1:-1)*(10+i*h*.035))+'" cy="'+(b-h*(.2+i*.1))+'" r="6" fill="'+['#d62839','#ffd36b','#7bc4ff'][i%3]+'" style="animation-delay:-'+(i*.5)+'s"/>';return q};
- s+=tree(1850,1015,300)+tree(200,1012,170);
+ s+=tree(1850,1015,300)+tree(150,1012,170);
+ // Santa, Schlitten und Rentiere (fliegen nach rechts, landen, Santa springt in den Kamin)
+ const santa='<rect x="-18" y="-100" width="36" height="42" rx="14" fill="#c8102e"/><circle cx="0" cy="-112" r="15" fill="#f5cfa8"/><path d="M-14,-108Q0,-76 14,-108Z" fill="#fff"/><path d="M-17,-121Q0,-162 18,-123Z" fill="#c8102e"/><rect x="-19" y="-126" width="38" height="10" rx="5" fill="#fff"/><circle cx="18" cy="-148" r="6" fill="#fff"/>';
+ const deer=(x,red)=>'<g transform="translate('+x+',0)"><path d="M-30,-30L-34,-4M-12,-30L-14,-4M22,-30L26,-4M38,-30L44,-4" stroke="#5a3a1c" stroke-width="7" stroke-linecap="round"/><ellipse cx="0" cy="-48" rx="42" ry="22" fill="#8b5a2b"/><path d="M26,-56L52,-92L66,-84L44,-48Z" fill="#8b5a2b"/><ellipse cx="62" cy="-92" rx="17" ry="11" fill="#8b5a2b" transform="rotate(-20 62 -92)"/><circle cx="76" cy="-90" r="5" fill="'+(red?'#ff2a2a':'#3a2414')+'"/><path d="M58,-102l-6,-26m6,26l16,-22m-16,0l-18,-12" stroke="#5a3a1c" stroke-width="4" fill="none" stroke-linecap="round"/><circle cx="-42" cy="-54" r="6" fill="#f1e8d0"/></g>';
+ s+='<g class="sl"><path d="M-100,6H72Q104,6 98,-16" stroke="#d9a93a" stroke-width="7" fill="none" stroke-linecap="round"/><path d="M-96,-8Q-104,-64 -62,-66H40Q80,-66 94,-36L82,-8Z" fill="#c8102e" stroke="#7a1523" stroke-width="3"/><path d="M-94,-28H88" stroke="#ffd36b" stroke-width="5"/><ellipse cx="-66" cy="-76" rx="28" ry="24" fill="#8b5a2b"/><rect x="-80" y="-98" width="16" height="14" fill="#2f6b3a"/><rect x="-60" y="-100" width="16" height="14" fill="#d9a93a"/><g class="ss" transform="translate(-6,2)">'+santa+'</g><path d="M84,-44Q130,-70 170,-62" stroke="#5a3a1c" stroke-width="3" fill="none"/>'+deer(190,0)+deer(300,1)+'</g>';
+ s+='<g class="sj">'+santa+'</g>';
  return s+'</svg>';
 }
 function calIllu(cur){
  V.innerHTML='';
  let h=Q.categories.map((c,ci)=>'<div class="fl c'+ci+'" style="top:'+(RY[ci]-42)+'px">'+c.icon+' '+esc(c.name)+'</div>').join('');
- Q.categories.forEach((c,ci)=>{for(let k=0;k<6;k++){const sp=k===5,key=ckey(ci,sp?'s':'q',k),cls=done[key]?'done':ci!==cur?'lock':sp&&![0,1,2,3,4].every(i=>done[ckey(ci,'q',i)])?'lock':'';
-  h+='<div class="door fw ill c'+ci+' '+(sp?'sp ':'')+cls+'" style="left:'+(WX[k]-48)+'px;top:'+(RY[ci]-42)+'px;width:96px;height:84px;animation-delay:'+((ci*6+k)*.07)+'s" data-c="'+ci+'" data-k="'+k+'"><i>'+(sp?'⭐':'🎁')+'</i><b>'+(ci*6+k+1)+'</b></div>'}});
- $('st').insertAdjacentHTML('beforeend','<div id="fac">'+illuSvg()+'<div class="santa">🦌🦌🛷</div>'+h+'</div>');
+ Q.categories.forEach((c,ci)=>{for(let k=0;k<6;k++){const sp=k===5,key=ckey(ci,sp?'s':'q',k),cls=done[key]?'done open':ci!==cur?'lock':sp&&![0,1,2,3,4].every(i=>done[ckey(ci,'q',i)])?'lock':'';
+  h+='<div class="door fw ill c'+ci+' '+(sp?'sp ':'')+cls+'" style="left:'+(WX[k]-48)+'px;top:'+(RY[ci]-42)+'px;width:96px;height:84px;animation-delay:'+((ci*6+k)*.07)+'s" data-c="'+ci+'" data-k="'+k+'"><i>'+(done[key]?'🎄':sp?'⭐':'🎁')+'</i><b>'+(ci*6+k+1)+'</b></div>'}});
+ $('st').insertAdjacentHTML('beforeend','<div id="fac">'+illuSvg()+h+'</div>');
  document.querySelectorAll('#fac .door').forEach(d=>d.onclick=()=>openDoor(d,+d.dataset.c,+d.dataset.k));
 }
 
@@ -201,10 +218,11 @@ async function resetAll(){if(!confirm('Wirklich alles zurücksetzen? Teilnehmeri
 /* Lobby */
 async function lobby(){
 
- V.innerHTML='<div style="display:flex;gap:80px;align-items:center"><div id="qr" style="background:#fff;padding:24px;border-radius:24px"></div><div><h2>Mitspielen!</h2><div style="font-size:42px;line-height:1.4">1. QR-Code scannen<br>2. Spitznamen + Icon wählen<br>3. Auf den Beamer schauen 🎅</div></div></div><div id="pl"></div><div style="display:flex;margin-top:auto;align-items:center"><button class="btn" id="go" style="margin:0">Adventskalender öffnen ➜</button><button class="btn" id="mu" style="margin:0 0 0 auto;background:linear-gradient(#2f6b3a,#1d4a27)">🔊 Musik starten</button></div>';
+ V.innerHTML='<div style="display:flex;gap:80px;align-items:center"><div id="qr" style="background:#fff;padding:24px;border-radius:24px"></div><div><h2>Mitspielen!</h2><div style="font-size:42px;line-height:1.4">1. QR-Code scannen<br>2. Spitznamen + Icon wählen<br>3. Auf den Beamer schauen 🎅</div></div></div><div id="pl"></div><div style="display:flex;margin-top:auto;align-items:center"><button class="btn" id="go" style="margin:0">Adventskalender öffnen ➜</button><button class="btn" id="th" style="margin:0 0 0 24px;background:linear-gradient(#1f4e79,#14304d)">🎨 Theme</button><button class="btn" id="mu" style="margin:0 0 0 auto;background:linear-gradient(#2f6b3a,#1d4a27)">🔊 Musik starten</button></div>';
  new QRCode($('qr'),{text:CFG.site,width:460,height:460});
  set('lobby').catch(()=>{});
  const seen=new Set(),iv=setInterval(async()=>{(await players()).forEach(p=>{if(!seen.has(p.id)){seen.add(p.id);$('pl').insertAdjacentHTML('beforeend','<span>'+p.icon+' '+esc(p.name)+'</span>')}})},1500);
+ $('th').onclick=switchTh;
  $('mu').onclick=()=>{Music.start();$('mu').textContent='🎶 Musik läuft (M = stumm)'};
  clearFac();corner(true);
  await click('go');clearInterval(iv);calendar();
