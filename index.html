@@ -14,7 +14,8 @@ let me=null,g={phase:'lobby',data:{}},icon='',sent={},tm;
 try{me=JSON.parse(localStorage.getItem('me61'))}catch(e){}
 const esc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
 snow(document.getElementById('fx'),22);
-const put=h=>{A.innerHTML='<h1>🎄 Amt 61 Weihnachtsquiz</h1>'+h};
+const put=h=>{A.className='';A.innerHTML='<h1>🎄 Amt 61 Weihnachtsquiz</h1>'+h};
+function fitText(el,min){let s=parseFloat(getComputedStyle(el).fontSize);while(el.scrollHeight>el.clientHeight+1&&s>min){s-=1;el.style.fontSize=s+'px'}}
 
 function joinView(){
  put('<p>Such dir einen lustigen Spitznamen und ein Icon aus:</p><input id="nm" maxlength="20" placeholder="Dein Spitzname" autocomplete="off"><div class="ic">'+ICONS.map(i=>'<button data-i="'+i+'"'+(i===icon?' class="on"':'')+'>'+i+'</button>').join('')+'</div><button class="go" id="j">Los geht’s!</button><p id="er"></p>');
@@ -39,10 +40,11 @@ async function render(){
  const d=g.data||{};
  if(g.phase==='question'){
   if(sent[d.qkey])return put('<div class="big">✅</div><p>Antwort gesendet!<br>Warte auf die anderen …</p>');
-  let h='<div class="bar"><i id="b"></div><div class="q">'+esc(d.text)+'</div>';
-  if(d.type==='mc')h+='<div class="mc">'+d.options.map((o,i)=>'<button data-a="'+i+'" style="background:'+COL[i]+';font-size:'+(Math.max(...d.options.map(x=>x.length))>70?14:Math.max(...d.options.map(x=>x.length))>40?16:20)+'px"><i>'+SYM[i]+'</i><span>'+esc(o)+'</span></button>').join('')+'</div>';
+  let h='<div class="bar"><i id="b"></div><div class="q" id="qq">'+esc(d.text)+'</div>';
+  if(d.type==='mc')h+='<div class="mc">'+d.options.map((o,i)=>'<button data-a="'+i+'" style="background:'+COL[i]+'"><i>'+SYM[i]+'</i><span>'+esc(o)+'</span></button>').join('')+'</div>';
   else h+='<input id="an" '+(d.type==='estimate'?'type="number" step="any" inputmode="decimal" placeholder="Deine Schätzung'+(d.unit?' ('+esc(d.unit)+')':'')+'"':'placeholder="Deine Antwort"')+' autocomplete="off"><button class="go" id="s">Senden</button>';
-  put(h);
+  put(h);A.className='qm';
+  requestAnimationFrame(()=>{fitText(document.getElementById('qq'),12);A.querySelectorAll('.mc button').forEach(b=>fitText(b,10))});
   const t0=Date.now(),secs=d.secs||20;
   tm=setInterval(()=>{const b=document.getElementById('b');if(b)b.style.width=Math.max(0,100-(Date.now()-t0)/secs/10)+'%'},100);
   const send=async v=>{

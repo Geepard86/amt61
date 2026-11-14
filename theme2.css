@@ -11,20 +11,20 @@
 #fac .door:not(.done):not(.lock){pointer-events:auto}
 #ill{position:absolute;inset:0;width:1920px;height:1080px}
 .tl{animation:tw 2.4s ease-in-out infinite alternate}
-.fl{position:absolute;left:30px;width:240px;padding:10px 12px;font:700 22px/1.25 "Cinzel Decorative",Georgia,serif;text-align:center;color:#fff3d6;background:linear-gradient(#4a2c18,#2b1a12);border:4px solid;border-radius:12px;box-shadow:0 8px 14px #0008;animation:rise .6s both}
+.fl{position:absolute;left:30px;width:250px;height:68px;display:flex;align-items:center;justify-content:center;padding:4px 10px;font:700 19px/1.15 "Cinzel Decorative",Georgia,serif;text-align:center;color:#fff3d6;background:linear-gradient(#4a2c18,#2b1a12);border:4px solid;border-radius:12px;box-shadow:0 8px 14px #0008;animation:rise .6s both}
 .fl.c0{border-color:#ffd36b}.fl.c1{border-color:#7be07b}.fl.c2{border-color:#ff9a9a}.fl.c3{border-color:#7bc4ff}
 .th-d .door.fw{border:4px solid #efe6d0;border-radius:4px;background:linear-gradient(#fff0b8,#f2b94a);animation:pop .5s both,winlight 1.6s both}
-.th-d .door.fw b{font-size:36px;border-radius:2px;border-width:3px;background:linear-gradient(135deg,#b02a3c,#7a1523);box-shadow:inset 0 0 0 3px #7a1523,0 3px 8px #000a}
+.th-d .door.fw b{font-size:28px;border-radius:2px;border-width:3px;background:linear-gradient(135deg,#b02a3c,#7a1523);box-shadow:inset 0 0 0 3px #7a1523,0 3px 8px #000a}
 .th-d .door.fw b:before{content:"";position:absolute;left:-7px;right:-7px;top:-12px;height:15px;background:#fff;border-radius:10px;box-shadow:0 2px 3px #0006}
 .th-d .door.fw.sp b{background:linear-gradient(135deg,#1f6b3a,#0f3a22);box-shadow:inset 0 0 0 3px #0f3a22,0 3px 8px #000a}
-.th-d .door.fw i{font-size:40px}
+.th-d .door.fw i{font-size:34px}
 .th-d .door.fw.c0 b{border-color:#ffd36b}.th-d .door.fw.c1 b{border-color:#7be07b}.th-d .door.fw.c2 b{border-color:#ff9a9a}.th-d .door.fw.c3 b{border-color:#7bc4ff}
 
 /* Santa: fliegt nach rechts, landet auf dem Dach, springt in den Kamin und steigt wieder auf (40 s Schleife) */
-@keyframes slg{0%{transform:translate(-340px,210px) scale(.7)}18%{transform:translate(250px,200px) scale(.7)}26%{transform:translate(365px,258px) scale(.7)}29%{transform:translate(380px,274px) scale(.7)}52%{transform:translate(380px,274px) scale(.7)}60%{transform:translate(700px,150px) scale(.7)}68%{transform:translate(1250px,122px) scale(.7)}78%,100%{transform:translate(2400px,100px) scale(.7)}}
+@keyframes slg{0%{transform:translate(-340px,300px) scale(.7)}18%{transform:translate(230px,285px) scale(.7)}26%{transform:translate(380px,395px) scale(.7)}29%{transform:translate(400px,424px) scale(.7)}52%{transform:translate(400px,424px) scale(.7)}56%{transform:translate(480px,200px) scale(.7)}62%{transform:translate(800px,150px) scale(.7)}66%{transform:translate(1050px,80px) scale(.7)}72%{transform:translate(1550px,30px) scale(.7)}80%,100%{transform:translate(2400px,0px) scale(.7)}}
 @keyframes ssn{0%,30.9%{opacity:1}31%,47%{opacity:0}47.1%,100%{opacity:1}}
-@keyframes sjp{0%,30.9%{opacity:0;transform:translate(374px,268px) scale(.55)}31%{opacity:1;transform:translate(374px,268px) scale(.55)}34%{transform:translate(560px,205px) scale(.55)}36.5%{transform:translate(725px,172px) scale(.55)}38.5%{opacity:1;transform:translate(725px,200px) scale(.35)}38.6%,41%{opacity:0;transform:translate(725px,200px) scale(.35)}41.1%{opacity:1;transform:translate(725px,200px) scale(.35)}42.5%{transform:translate(725px,172px) scale(.55)}45%{transform:translate(560px,200px) scale(.55)}47%{opacity:1;transform:translate(374px,268px) scale(.55)}47.1%,100%{opacity:0;transform:translate(374px,268px) scale(.55)}}
-.sl{animation:slg 40s ease-in-out infinite;transform:translate(-340px,210px) scale(.7)}
+@keyframes sjp{0%,30.9%{opacity:0;transform:translate(394px,418px) scale(.55)}31%{opacity:1;transform:translate(394px,418px) scale(.55)}34%{transform:translate(550px,240px) scale(.55)}36.5%{transform:translate(707px,298px) scale(.55)}38.5%{opacity:1;transform:translate(707px,326px) scale(.35)}38.6%,41%{opacity:0;transform:translate(707px,326px) scale(.35)}41.1%{opacity:1;transform:translate(707px,326px) scale(.35)}42.5%{transform:translate(707px,298px) scale(.55)}45%{transform:translate(550px,240px) scale(.55)}47%{opacity:1;transform:translate(394px,418px) scale(.55)}47.1%,100%{opacity:0;transform:translate(394px,418px) scale(.55)}}
+.sl{animation:slg 40s ease-in-out infinite;transform:translate(-340px,300px) scale(.7)}
 .ss{animation:ssn 40s linear infinite}
 .sj{animation:sjp 40s ease-in-out infinite;opacity:0}
 .th-d h1{text-align:left;font-size:36px;margin:0 0 0 20px;width:max-content;letter-spacing:2px}

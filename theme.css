@@ -74,8 +74,13 @@ body:not(:has(#st)){min-height:100vh;background:radial-gradient(ellipse at 50% 0
 #app .q{font-size:20px;padding:16px 18px;margin:12px 0;border-width:4px}
 #app .bar{height:12px;margin:10px 0}
 
-/* Multiple Choice am Handy: immer 2 feste Reihen mit je 2 gleich großen Feldern */
-.mc{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr));gap:12px;margin-top:12px;height:min(52vh,440px)}
-.mc button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;text-align:center;line-height:1.2;padding:8px;width:100%;height:100%;overflow:hidden;overflow-wrap:anywhere;hyphens:auto}
-.mc button i{font-style:normal;font-size:26px;opacity:.85}
-.mc button span{display:block;max-height:100%}
+/* Fragenansicht am Handy: immer genau ein Bildschirm, volle Breite, 2x2 gleich große Felder */
+body:has(#app.qm){height:100dvh;overflow:hidden;padding-left:8px;padding-right:8px}
+#app.qm{max-width:none;height:calc(100dvh - 8px);padding:6px 0;display:flex;flex-direction:column}
+#app.qm h1{display:none}
+#app.qm .bar{flex:0 0 10px;margin:0 0 8px}
+#app.qm .q{flex:0 1 auto;max-height:36%;overflow:hidden;margin:0 0 8px;font-size:21px;line-height:1.2;padding:10px 14px}
+#app.qm .mc{flex:1 1 0;min-height:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr));gap:8px;margin:0}
+#app.qm .mc button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;text-align:center;width:100%;height:100%;min-height:0;padding:6px;font-size:22px;line-height:1.15;overflow:hidden;overflow-wrap:anywhere;hyphens:auto}
+#app.qm .mc button i{font-style:normal;font-size:.9em;opacity:.85}
+#app.qm .mc button span{display:block}

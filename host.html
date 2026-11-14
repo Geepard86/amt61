@@ -32,6 +32,7 @@ let Q,done={};try{done=JSON.parse(localStorage.d61||'{}')}catch(e){}
 async function rpc(f,a){const r=await sb.rpc(f,a||{});if(r.error){showErr('Supabase-Funktion '+f+': '+r.error.message);throw r.error}return r.data}
 const set=(phase,data,secs)=>rpc('host_set',{p_phase:phase,p_data:data||{},p_secs:secs||0});
 const players=async()=>(await sb.from('players').select('*').order('score',{ascending:false})).data||[];
+const EM=['🎅','🤶','🦌','⛄','🎄','🎁','🔔','🍪','🧝','🕯️','🧦','🥛','❄️','🍷','🎶','🛷','🧣','🥜','🍊','🕊️','👼','🏠','🍬','⭐'];
 const ckey=(c,t,i)=>c+(t==='s'?'-s':'-q'+i),mark=k=>{done[k]=1;localStorage.d61=JSON.stringify(done)};
 
 /* Fuzzy-Antwortvergleich */
@@ -136,7 +137,7 @@ function calendar(){
 function calRows(cur){
  V.innerHTML=Q.categories.map((c,ci)=>'<div class="row"><div class="lab">'+c.icon+' '+esc(c.name)+'</div>'+[0,1,2,3,4,5].map(k=>{
   const sp=k===5,key=ckey(ci,sp?'s':'q',k),cls=done[key]?'done open':ci!==cur?'lock':sp&&![0,1,2,3,4].every(i=>done[ckey(ci,'q',i)])?'lock':'';
-  return '<div class="door '+(sp?'sp ':'')+cls+'" data-c="'+ci+'" data-k="'+k+'"><i>'+(done[key]?'🎄':sp?'⭐':'🎁')+'</i><b>'+(ci*6+k+1)+'</b></div>'}).join('')+'</div>').join('');
+  return '<div class="door '+(sp?'sp ':'')+cls+'" data-c="'+ci+'" data-k="'+k+'"><i>'+EM[ci*6+k]+'</i><b>'+(ci*6+k+1)+'</b></div>'}).join('')+'</div>').join('');
  V.querySelectorAll('.door').forEach(d=>d.onclick=()=>openDoor(d,+d.dataset.c,+d.dataset.k));
 }
 async function openDoor(el,c,k){
@@ -153,50 +154,61 @@ async function openDoor(el,c,k){
  calendar();
 }
 
-/* Gezeichnetes Dienstgebäude: Fenster und Türchen entstehen aus denselben Koordinaten, sitzen also immer richtig */
-const WX=[650,770,890,1220,1340,1460],RY=[415,520,625,730],RL=x=>300-(x-260)*.077,AX=430;
+/* Gezeichnetes Dienstgebäude nach dem Foto (Koordinaten = Foto-Pixel, Umrechnung auf die Bühne über M) */
+const S=.74,OX=34,OY=10,M=(x,y)=>[OX+x*S,OY+y*S];
+const LYr=(r,x)=>[655,755,855,955,1055,1155][r]-(x-500)*.23;
+const RYr=(r,x)=>LYr(r,1240)-(x-1240)*.39;
+const roofY=x=>x<1240?598-(x-400)*.23:405-(x-1240)*.43;
+const DCOL=[560,700,840,1290,1440,1590];
+const doorPos=(r,k)=>{const x=DCOL[k],y=k<3?LYr(r,x):RYr(r,x);return M(x,y)};
+const F0=n=>Math.round(n);
 const clearFac=()=>{const f=$('fac');if(f)f.remove()};
 function corner(on){let b=$('rsb');if(!b){$('st').insertAdjacentHTML('beforeend','<button id="rsb">⟲ Reset</button>');b=$('rsb');b.onclick=resetAll}b.style.display=on?'block':'none'}
 function illuSvg(){
- let r=7;const rnd=()=>(r=(r*9301+49297)%233280)/233280,L=RL,P=(a,b)=>a+','+b,F=n=>Math.round(n);
- const arcs=(R,from,to,n,f)=>{let q='';for(let i=0;i<=n;i++){const a=Math.PI+i*Math.PI/n;q+=f(AX+R*Math.cos(a),860+R*Math.sin(a),i)}return q};
- let s='<svg id="ill" viewBox="0 0 1920 1080"><defs><pattern id="br" width="64" height="30" patternUnits="userSpaceOnUse"><rect width="64" height="30" fill="#8a372a"/><path d="M0 15H64M32 0V15M0 15V30M64 15V30" stroke="#682a1f" stroke-width="2" fill="none"/></pattern><linearGradient id="gl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff0b8"/><stop offset="1" stop-color="#f2b94a"/></linearGradient><linearGradient id="gd" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f4f8ff"/><stop offset="1" stop-color="#b7c8e8"/></linearGradient><linearGradient id="gs" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe3a8"/><stop offset="1" stop-color="#dbe6f7"/></linearGradient><radialGradient id="mo"><stop offset="0" stop-color="#fff8d8"/><stop offset="1" stop-color="#fff8d800"/></radialGradient></defs>';
- for(let i=0;i<70;i++)s+='<circle class="tl" cx="'+(rnd()*1920|0)+'" cy="'+(rnd()*230+10|0)+'" r="'+(1+rnd()*2).toFixed(1)+'" fill="#fff" style="animation-delay:-'+(rnd()*4).toFixed(1)+'s"/>';
- s+='<circle cx="1850" cy="190" r="110" fill="url(#mo)"/><circle cx="1850" cy="190" r="46" fill="#fff6cf"/><circle cx="1835" cy="179" r="8" fill="#e9dfae"/><circle cx="1866" cy="205" r="6" fill="#e9dfae"/>';
- s+='<path d="M0,1000 Q300,985 620,998 T1240,996 T1920,990 V1080 H0Z" fill="url(#gd)"/>';
- const body='300,'+F(L(300))+' 1560,'+F(L(1560))+' 1560,1000 300,1000';
- s+='<polygon points="'+body+'" fill="url(#br)"/><polygon points="'+body+'" fill="#000" opacity=".16"/>';
- let t='M300,'+F(L(300)+4);for(let x=300;x+44<=1560;x+=44)t+=' Q'+(x+22)+','+F(L(x+22)-30)+' '+(x+44)+','+F(L(x+44)+2);
- s+='<path d="'+t+' L1560,'+F(L(1560)+20)+' L300,'+F(L(300)+20)+'Z" fill="#fff"/>';
- for(let x=312;x<1550;x+=40){const l=14+Math.abs(Math.sin(x))*26;s+='<polygon points="'+P(x,F(L(x)+18))+' '+P(x+14,F(L(x)+18))+' '+P(x+7,F(L(x)+18+l))+'" fill="url(#gd)"/>'}
- let g='M300,'+F(L(300)+46);for(let x=300;x+110<=1560;x+=110)g+=' Q'+(x+55)+','+F(L(x+55)+78)+' '+(x+110)+','+F(L(x+110)+46);
- s+='<path d="'+g+'" fill="none" stroke="#1f6b32" stroke-width="10" stroke-linecap="round"/><path d="'+g+'" fill="none" stroke="#6fcf7a" stroke-width="3" stroke-dasharray="2 9"/>';
- for(let x=300,i=0;x+110<=1560;x+=110,i++){s+='<circle cx="'+x+'" cy="'+F(L(x)+46)+'" r="11" fill="'+['#d62839','#f5c542'][i%2]+'"/>';[.25,.5,.75].forEach((u,j)=>{s+='<circle class="tl" cx="'+(x+110*u)+'" cy="'+F(L(x+110*u)+46+64*u*(1-u))+'" r="6" fill="'+['#ffd36b','#fff','#ff7b8a'][(i+j)%3]+'" style="animation-delay:-'+((i*3+j)*.37%2.4).toFixed(1)+'s"/>'})}
- // Schornstein
- s+='<rect x="700" y="185" width="50" height="110" fill="url(#br)"/><rect x="700" y="185" width="50" height="110" fill="#000" opacity=".15"/><rect x="692" y="175" width="66" height="14" fill="#5a2218"/><rect x="692" y="166" width="66" height="13" rx="6" fill="#fff"/><circle class="tl" cx="728" cy="146" r="12" fill="#fff" opacity=".5"/><circle class="tl" cx="738" cy="120" r="16" fill="#fff" opacity=".4"/><circle class="tl" cx="726" cy="90" r="20" fill="#fff" opacity=".3"/>';
- // Erkerturm Mitte und hoher Turm rechts
- s+='<rect x="960" y="190" width="180" height="810" fill="url(#br)"/><rect x="960" y="190" width="180" height="810" fill="#fff" opacity=".05"/><rect x="948" y="176" width="204" height="24" fill="#5a2218"/><rect x="948" y="164" width="204" height="16" rx="7" fill="#fff"/>';
- s+='<rect x="1560" y="135" width="200" height="865" fill="url(#br)"/><rect x="1560" y="135" width="200" height="865" fill="#000" opacity=".08"/><rect x="1548" y="121" width="224" height="24" fill="#5a2218"/><rect x="1548" y="109" width="224" height="16" rx="7" fill="#fff"/><path d="M1620,109V48M1690,109V70" stroke="#c9c9c9" stroke-width="4"/><circle class="tl" cx="1620" cy="46" r="7" fill="#ff3b3b"/>';
- RY.forEach(y=>{WX.forEach(x=>{s+='<rect x="'+(x-56)+'" y="'+(y-48)+'" width="112" height="96" fill="#f1e8d0"/><rect x="'+(x-48)+'" y="'+(y-40)+'" width="96" height="80" fill="url(#gl)"/><path d="M'+x+','+(y-40)+'V'+(y+40)+'M'+(x-48)+','+y+'H'+(x+48)+'" stroke="#f1e8d0" stroke-width="5"/><rect x="'+(x-62)+'" y="'+(y+46)+'" width="124" height="9" rx="4" fill="#fff"/>'});
-  [[975,150],[1585,150]].forEach(a=>{s+='<rect x="'+a[0]+'" y="'+(y-46)+'" width="'+a[1]+'" height="92" fill="#f1e8d0"/><rect x="'+(a[0]+6)+'" y="'+(y-40)+'" width="'+(a[1]-12)+'" height="80" fill="url(#gl)"/><path d="M'+(a[0]+50)+','+(y-40)+'V'+(y+40)+'M'+(a[0]+a[1]-50)+','+(y-40)+'V'+(y+40)+'" stroke="#f1e8d0" stroke-width="5"/><rect x="'+(a[0]-6)+'" y="'+(y+44)+'" width="'+(a[1]+12)+'" height="9" rx="4" fill="#fff"/>'})});
- [690,800,910,1220,1340,1460,1620,1710].forEach(x=>{s+='<rect x="'+(x-36)+'" y="876" width="72" height="92" fill="url(#gl)" stroke="#f1e8d0" stroke-width="6"/>'});
- s+='<rect x="1020" y="900" width="60" height="100" fill="#3a2a1a"/><rect x="1026" y="906" width="48" height="94" fill="url(#gl)"/><polygon points="1004,898 1096,898 1108,870 992,870" fill="#c8102e"/>';
- // Wand über dem Tor: großer Kranz und Schleifenband
- s+='<circle cx="430" cy="500" r="76" fill="none" stroke="#1f6b32" stroke-width="30"/><circle cx="430" cy="500" r="76" fill="none" stroke="#6fcf7a" stroke-width="4" stroke-dasharray="3 9"/>';
- for(let i=0;i<14;i++){const a=i*360/14*Math.PI/180;s+='<circle cx="'+F(430+76*Math.cos(a))+'" cy="'+F(500+76*Math.sin(a))+'" r="6" fill="#d62839"/><circle class="tl" cx="'+F(430+90*Math.cos(a+.2))+'" cy="'+F(500+90*Math.sin(a+.2))+'" r="4" fill="#ffd36b" style="animation-delay:-'+(i*.3%2.4).toFixed(1)+'s"/>'}
- s+='<polygon points="430,424 392,404 396,446" fill="#d62839"/><polygon points="430,424 468,404 464,446" fill="#d62839"/><circle cx="430" cy="424" r="10" fill="#a3111f"/>';
- s+='<path d="M338,612H522L508,650L522,688H338L352,650Z" fill="#c8102e" stroke="#ffd36b" stroke-width="3"/><text x="430" y="656" font-size="19" font-weight="700" text-anchor="middle" fill="#ffe9a8" font-family="Cinzel Decorative,Georgia,serif">Frohe Weihnachten</text>';
- // der große Torbogen: Steinrahmen, Backsteinring, Tunnel mit Tiefe, Blick auf die Straße dahinter
- s+='<path d="M298,1000V860A132,132 0 0 1 562,860V1000Z" fill="#cdbf9f"/><path d="M316,1000V860A114,114 0 0 1 544,860V1000Z" fill="url(#br)"/><path d="M334,1000V860A96,96 0 0 1 526,860V1000Z" fill="#2a1a2e"/><path d="M346,1000V860A84,84 0 0 1 514,860V1000Z" fill="#3d2c45"/><path d="M358,1000V860A72,72 0 0 1 502,860V1000Z" fill="#574462"/><path d="M372,1000V860A58,58 0 0 1 488,860V1000Z" fill="url(#gs)"/>';
- s+=arcs(115,0,0,18,(x,y,i)=>'<path d="M'+P(F(x),F(y))+'L'+P(F(AX+(x-AX)*.84),F(860+(y-860)*.84))+'" stroke="#682a1f" stroke-width="3"/>')+arcs(123,0,0,18,(x,y,i)=>'<path d="M'+P(F(x),F(y))+'L'+P(F(AX+(x-AX)*1.07),F(860+(y-860)*1.07))+'" stroke="#a8977a" stroke-width="3"/>');
- s+='<polygon points="334,1000 526,1000 488,925 372,925" fill="#e3ecfa" opacity=".9"/><path d="M470,1000V904" stroke="#333" stroke-width="4"/><circle class="tl" cx="470" cy="898" r="9" fill="#ffd36b"/><polygon points="400,990 390,990 395,950" fill="#2f6b3a"/><polygon points="408,990 392,990 400,940" fill="#2f6b3a"/>';
- s+='<path d="M296,1000V860A134,134 0 0 1 564,860V1000" fill="none" stroke="#1f6b32" stroke-width="12"/><path d="M296,1000V860A134,134 0 0 1 564,860V1000" fill="none" stroke="#6fcf7a" stroke-width="3" stroke-dasharray="2 9"/>';
- for(let i=0;i<=26;i++){const a=Math.PI+i*Math.PI/26;s+='<circle class="tl" cx="'+F(AX+134*Math.cos(a))+'" cy="'+F(860+134*Math.sin(a))+'" r="6" fill="'+['#ffd36b','#fff','#ff7b8a'][i%3]+'" style="animation-delay:-'+(i*.3%2.4).toFixed(1)+'s"/>'}
+ let r=7;const rnd=()=>(r=(r*9301+49297)%233280)/233280,F=F0,P=(a,b)=>a+','+b;
+ let s='<svg id="ill" viewBox="0 0 1920 1080"><defs><pattern id="br" width="48" height="22" patternUnits="userSpaceOnUse"><rect width="48" height="22" fill="#7d3326"/><path d="M0 11H48M24 0V11M0 11V22M48 11V22" stroke="#5b2218" stroke-width="2" fill="none"/></pattern><linearGradient id="gl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff0b8"/><stop offset="1" stop-color="#f2b94a"/></linearGradient><linearGradient id="gd" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f4f8ff"/><stop offset="1" stop-color="#b7c8e8"/></linearGradient><linearGradient id="gs" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe3a8"/><stop offset="1" stop-color="#dbe6f7"/></linearGradient><radialGradient id="mo"><stop offset="0" stop-color="#fff8d8"/><stop offset="1" stop-color="#fff8d800"/></radialGradient></defs>';
+ for(let i=0;i<70;i++)s+='<circle class="tl" cx="'+(rnd()*1920|0)+'" cy="'+(rnd()*200+10|0)+'" r="'+(1+rnd()*2).toFixed(1)+'" fill="#fff" style="animation-delay:-'+(rnd()*4).toFixed(1)+'s"/>';
+ s+='<circle cx="1700" cy="170" r="110" fill="url(#mo)"/><circle cx="1700" cy="170" r="46" fill="#fff6cf"/><circle cx="1685" cy="159" r="8" fill="#e9dfae"/><circle cx="1716" cy="185" r="6" fill="#e9dfae"/>';
+ s+='<g transform="translate('+OX+','+OY+') scale('+S+')">';
+ s+='<polygon points="400,598 1240,405 1790,168 1790,1382 400,1382" fill="url(#br)"/><polygon points="400,598 1240,405 1790,168 1790,1382 400,1382" fill="#000" opacity=".12"/>';
+ s+='<polygon points="1790,168 1880,122 1952,122 2000,420 2000,1382 1790,1382" fill="url(#br)"/><polygon points="1790,168 1880,122 1952,122 2000,420 2000,1382 1790,1382" fill="#000" opacity=".3"/>';
+ s+='<rect x="1870" y="104" width="94" height="22" fill="#4a2018"/><rect x="1866" y="92" width="102" height="16" rx="7" fill="#fff"/><path d="M1745,190V40M1768,180V58M1812,160V30" stroke="#cfcfcf" stroke-width="5"/><circle class="tl" cx="1745" cy="38" r="8" fill="#ff3b3b"/>';
+ s+='<polygon points="396,598 1240,402 1792,164 1792,186 1240,424 396,620" fill="#4a2018"/>';
+ let t='M396,'+F(roofY(396)-4);for(let x=396;x+50<=1790;x+=50)t+=' Q'+(x+25)+','+F(roofY(x+25)-36)+' '+(x+50)+','+F(roofY(x+50)-6);
+ s+='<path d="'+t+' L1790,'+F(roofY(1790)+10)+' L396,'+F(roofY(396)+10)+'Z" fill="#fff"/>';
+ for(let x=410;x<1780;x+=46){const l=18+Math.abs(Math.sin(x))*34;s+='<polygon points="'+P(x,F(roofY(x)+22))+' '+P(x+16,F(roofY(x)+22))+' '+P(x+8,F(roofY(x)+22+l))+'" fill="url(#gd)"/>'}
+ for(let x=430,i=0;x<1780;x+=64,i++)s+='<circle class="tl" cx="'+x+'" cy="'+F(roofY(x)+38)+'" r="8" fill="'+['#ffd36b','#ff7b8a','#7be07b','#fff'][i%4]+'" style="animation-delay:-'+((i*.4)%2.4).toFixed(1)+'s"/>';
+ const win=(x,y)=>'<rect x="'+(x-23)+'" y="'+(y-31)+'" width="46" height="62" fill="#f1e8d0"/><rect x="'+(x-18)+'" y="'+(y-26)+'" width="36" height="52" fill="url(#gl)"/><path d="M'+x+','+(y-26)+'V'+(y+26)+'M'+(x-18)+','+y+'H'+(x+18)+'" stroke="#f1e8d0" stroke-width="3"/>';
+ for(let rr=0;rr<6;rr++){for(let x=470;x<=1030;x+=75){const y=LYr(rr,x);if(x>600&&x<1040&&y>900)continue;s+=win(x,F(y))}
+  for(let x=1240;x<=1760;x+=95)s+=win(x,F(RYr(rr,x)))}
+ s+='<rect x="1052" y="668" width="126" height="680" fill="url(#br)"/><rect x="1052" y="668" width="126" height="680" fill="#fff" opacity=".06"/><rect x="1042" y="652" width="146" height="20" fill="#4a2018"/><rect x="1040" y="640" width="150" height="16" rx="7" fill="#fff"/>';
+ [745,850,1090,1195].forEach(y=>{s+='<rect x="1058" y="'+(y-36)+'" width="114" height="72" fill="#f1e8d0"/><rect x="1064" y="'+(y-30)+'" width="102" height="60" fill="url(#gl)"/><path d="M1098,'+(y-30)+'V'+(y+30)+'M1132,'+(y-30)+'V'+(y+30)+'" stroke="#f1e8d0" stroke-width="4"/><rect x="1052" y="'+(y+34)+'" width="126" height="9" rx="4" fill="#fff"/>'});
+ s+='<rect x="1180" y="1250" width="610" height="18" fill="#9c9484"/>';
+ for(let i=0;i<5;i++)s+='<rect x="'+(1210+i*118)+'" y="1290" width="100" height="92" fill="url(#gl)" stroke="#6e675a" stroke-width="8"/>';
+ for(let i=0;i<3;i++)s+='<rect x="'+(440+i*80)+'" y="1300" width="62" height="82" fill="url(#gl)" stroke="#f1e8d0" stroke-width="6"/>';
+ s+='<rect x="1080" y="1290" width="70" height="92" fill="#3a2a1a"/><rect x="1086" y="1296" width="58" height="86" fill="url(#gl)"/><polygon points="1066,1288 1164,1288 1176,1258 1054,1258" fill="#c8102e"/>';
+ s+='<rect x="880" y="392" width="62" height="130" fill="url(#br)"/><rect x="880" y="392" width="62" height="130" fill="#000" opacity=".15"/><rect x="870" y="380" width="82" height="16" fill="#4a2018"/><rect x="870" y="368" width="82" height="16" rx="7" fill="#fff"/><circle class="tl" cx="911" cy="336" r="14" fill="#fff" opacity=".5"/><circle class="tl" cx="921" cy="300" r="19" fill="#fff" opacity=".4"/><circle class="tl" cx="909" cy="258" r="24" fill="#fff" opacity=".3"/>';
+ const AX=830,SY=1222;
+ s+='<g transform="translate(830,1382) scale(1.3) translate(-830,-1382)">';
+ s+='<rect x="684" y="1054" width="28" height="328" fill="#cfc3a5"/><rect x="948" y="1054" width="28" height="328" fill="#cfc3a5"/><rect x="684" y="1054" width="28" height="8" fill="#a99d80"/><rect x="948" y="1054" width="28" height="8" fill="#a99d80"/>';
+ s+='<path d="M712,1382V'+SY+'A118,118 0 0 1 948,'+SY+'V1382Z" fill="url(#br)"/><path d="M712,1382V'+SY+'A118,118 0 0 1 948,'+SY+'V1382Z" fill="#fff" opacity=".07"/>';
+ for(let i=0;i<=22;i++){const a=Math.PI+i*Math.PI/22;s+='<path d="M'+P(F(AX+104*Math.cos(a)),F(SY+104*Math.sin(a)))+'L'+P(F(AX+118*Math.cos(a)),F(SY+118*Math.sin(a)))+'" stroke="#4c1c12" stroke-width="3"/>'}
+ s+='<path d="M722,1382V'+SY+'A108,108 0 0 1 938,'+SY+'V1382Z" fill="#d9ccaa"/><path d="M730,1382V'+SY+'A100,100 0 0 1 930,'+SY+'V1382Z" fill="#2a1a2e"/><path d="M744,1382V'+SY+'A86,86 0 0 1 916,'+SY+'V1382Z" fill="#3d2c45"/><path d="M758,1382V'+SY+'A72,72 0 0 1 902,'+SY+'V1382Z" fill="#574462"/><path d="M774,1382V'+SY+'A56,56 0 0 1 886,'+SY+'V1382Z" fill="url(#gs)"/>';
+ s+='<polygon points="730,1382 930,1382 884,1300 776,1300" fill="#e3ecfa" opacity=".92"/><path d="M868,1382V1292" stroke="#333" stroke-width="5"/><circle class="tl" cx="868" cy="1284" r="11" fill="#ffd36b"/><polygon points="800,1372 786,1372 793,1320" fill="#2f6b3a"/>';
+ s+='<path d="M706,1382V'+SY+'A124,124 0 0 1 954,'+SY+'V1382" fill="none" stroke="#1f6b32" stroke-width="14"/><path d="M706,1382V'+SY+'A124,124 0 0 1 954,'+SY+'V1382" fill="none" stroke="#6fcf7a" stroke-width="3" stroke-dasharray="2 10"/>';
+ for(let i=0;i<=26;i++){const a=Math.PI+i*Math.PI/26;s+='<circle class="tl" cx="'+F(AX+124*Math.cos(a))+'" cy="'+F(SY+124*Math.sin(a))+'" r="7" fill="'+['#ffd36b','#fff','#ff7b8a'][i%3]+'" style="animation-delay:-'+(i*.3%2.4).toFixed(1)+'s"/>'}
+ s+='<circle cx="830" cy="1296" r="34" fill="none" stroke="#1f6b32" stroke-width="18"/><circle cx="830" cy="1296" r="34" fill="none" stroke="#6fcf7a" stroke-width="3" stroke-dasharray="3 7"/>';
+ for(let i=0;i<8;i++){const a=i*45*Math.PI/180;s+='<circle cx="'+F(830+34*Math.cos(a))+'" cy="'+F(1296+34*Math.sin(a))+'" r="5" fill="#d62839"/>'}
+ s+='<polygon points="830,1328 806,1352 814,1324" fill="#d62839"/><polygon points="830,1328 854,1352 846,1324" fill="#d62839"/><circle cx="830" cy="1328" r="8" fill="#a3111f"/>';
+ s+='</g></g>';
+ s+='<path d="M0,1022 Q300,1004 620,1020 T1240,1018 T1920,1010 V1080 H0Z" fill="url(#gd)"/>';
  const tree=(cx,b,h)=>{let q='';for(let i=0;i<3;i++){const w=h*(.34-i*.07),y=b-h*(.3+i*.26);q+='<polygon points="'+P(cx-w,y+h*.3)+' '+P(cx+w,y+h*.3)+' '+P(cx,y)+'" fill="#1f6b32"/><path d="M'+P(cx-w*.8,y+h*.22)+'Q'+P(cx,y+h*.12)+' '+P(cx+w*.8,y+h*.22)+'L'+P(cx,y)+'Z" fill="#fff" opacity=".85"/>'}
   q+='<rect x="'+(cx-9)+'" y="'+(b-h*.1)+'" width="18" height="'+h*.1+'" fill="#5a3a1c"/><text x="'+cx+'" y="'+(b-h*.97)+'" font-size="44" text-anchor="middle">⭐</text>';
   for(let i=0;i<7;i++)q+='<circle class="tl" cx="'+(cx+(i%2?1:-1)*(10+i*h*.035))+'" cy="'+(b-h*(.2+i*.1))+'" r="6" fill="'+['#d62839','#ffd36b','#7bc4ff'][i%3]+'" style="animation-delay:-'+(i*.5)+'s"/>';return q};
- s+=tree(1850,1015,300)+tree(150,1012,170);
- // Santa, Schlitten und Rentiere (fliegen nach rechts, landen, Santa springt in den Kamin)
+ const stall=x=>'<rect x="'+x+'" y="915" width="150" height="110" fill="#6b4423"/><rect x="'+(x+14)+'" y="950" width="122" height="52" fill="url(#gl)"/><polygon points="'+P(x-14,918)+' '+P(x+164,918)+' '+P(x+75,860)+'" fill="#c8102e"/><path d="M'+(x-14)+',918Q'+(x+75)+',900 '+(x+164)+',918" fill="#fff"/><rect x="'+(x+8)+'" y="1002" width="134" height="14" fill="#8b5a2b"/><circle class="tl" cx="'+(x+30)+'" cy="936" r="5" fill="#ffd36b"/><circle class="tl" cx="'+(x+75)+'" cy="940" r="5" fill="#ff7b8a"/><circle class="tl" cx="'+(x+120)+'" cy="936" r="5" fill="#7be07b"/>';
+ const lamp=x=>'<path d="M'+x+',1030V850" stroke="#2b2b3a" stroke-width="8"/><circle cx="'+x+'" cy="842" r="16" fill="#ffd36b"/><circle class="tl" cx="'+x+'" cy="842" r="30" fill="#ffd36b" opacity=".3"/><path d="M'+x+',880Q'+(x+40)+',900 '+(x+80)+',880" stroke="#1f6b32" stroke-width="6" fill="none"/>';
+ s+=lamp(300)+stall(1530)+tree(1800,1030,330)+tree(120,1040,210);
+ s+='<g transform="translate(220,0)"><circle cx="1480" cy="990" r="34" fill="#fff"/><circle cx="1480" cy="942" r="25" fill="#fff"/><circle cx="1480" cy="905" r="18" fill="#fff"/><circle cx="1474" cy="901" r="2.5" fill="#222"/><circle cx="1487" cy="901" r="2.5" fill="#222"/><polygon points="1480,906 1500,911 1480,914" fill="#f08a24"/><rect x="1462" y="882" width="36" height="8" fill="#c8102e"/><rect x="1468" y="866" width="24" height="18" fill="#222"/></g>';
  const santa='<rect x="-18" y="-100" width="36" height="42" rx="14" fill="#c8102e"/><circle cx="0" cy="-112" r="15" fill="#f5cfa8"/><path d="M-14,-108Q0,-76 14,-108Z" fill="#fff"/><path d="M-17,-121Q0,-162 18,-123Z" fill="#c8102e"/><rect x="-19" y="-126" width="38" height="10" rx="5" fill="#fff"/><circle cx="18" cy="-148" r="6" fill="#fff"/>';
  const deer=(x,red)=>'<g transform="translate('+x+',0)"><path d="M-30,-30L-34,-4M-12,-30L-14,-4M22,-30L26,-4M38,-30L44,-4" stroke="#5a3a1c" stroke-width="7" stroke-linecap="round"/><ellipse cx="0" cy="-48" rx="42" ry="22" fill="#8b5a2b"/><path d="M26,-56L52,-92L66,-84L44,-48Z" fill="#8b5a2b"/><ellipse cx="62" cy="-92" rx="17" ry="11" fill="#8b5a2b" transform="rotate(-20 62 -92)"/><circle cx="76" cy="-90" r="5" fill="'+(red?'#ff2a2a':'#3a2414')+'"/><path d="M58,-102l-6,-26m6,26l16,-22m-16,0l-18,-12" stroke="#5a3a1c" stroke-width="4" fill="none" stroke-linecap="round"/><circle cx="-42" cy="-54" r="6" fill="#f1e8d0"/></g>';
  s+='<g class="sl"><path d="M-100,6H72Q104,6 98,-16" stroke="#d9a93a" stroke-width="7" fill="none" stroke-linecap="round"/><path d="M-96,-8Q-104,-64 -62,-66H40Q80,-66 94,-36L82,-8Z" fill="#c8102e" stroke="#7a1523" stroke-width="3"/><path d="M-94,-28H88" stroke="#ffd36b" stroke-width="5"/><ellipse cx="-66" cy="-76" rx="28" ry="24" fill="#8b5a2b"/><rect x="-80" y="-98" width="16" height="14" fill="#2f6b3a"/><rect x="-60" y="-100" width="16" height="14" fill="#d9a93a"/><g class="ss" transform="translate(-6,2)">'+santa+'</g><path d="M84,-44Q130,-70 170,-62" stroke="#5a3a1c" stroke-width="3" fill="none"/>'+deer(190,0)+deer(300,1)+'</g>';
@@ -205,9 +217,9 @@ function illuSvg(){
 }
 function calIllu(cur){
  V.innerHTML='';
- let h=Q.categories.map((c,ci)=>'<div class="fl c'+ci+'" style="top:'+(RY[ci]-42)+'px">'+c.icon+' '+esc(c.name)+'</div>').join('');
- Q.categories.forEach((c,ci)=>{for(let k=0;k<6;k++){const sp=k===5,key=ckey(ci,sp?'s':'q',k),cls=done[key]?'done open':ci!==cur?'lock':sp&&![0,1,2,3,4].every(i=>done[ckey(ci,'q',i)])?'lock':'';
-  h+='<div class="door fw ill c'+ci+' '+(sp?'sp ':'')+cls+'" style="left:'+(WX[k]-48)+'px;top:'+(RY[ci]-42)+'px;width:96px;height:84px;animation-delay:'+((ci*6+k)*.07)+'s" data-c="'+ci+'" data-k="'+k+'"><i>'+(done[key]?'🎄':sp?'⭐':'🎁')+'</i><b>'+(ci*6+k+1)+'</b></div>'}});
+ let h=Q.categories.map((c,ci)=>{const p=doorPos(ci,0);return '<div class="fl c'+ci+'" style="top:'+F0(p[1]-34)+'px">'+c.icon+' '+esc(c.name)+'</div>'}).join('');
+ Q.categories.forEach((c,ci)=>{for(let k=0;k<6;k++){const sp=k===5,key=ckey(ci,sp?'s':'q',k),cls=done[key]?'done open':ci!==cur?'lock':sp&&![0,1,2,3,4].every(i=>done[ckey(ci,'q',i)])?'lock':'',p=doorPos(ci,k);
+  h+='<div class="door fw ill c'+ci+' '+(sp?'sp ':'')+cls+'" style="left:'+F0(p[0]-39)+'px;top:'+F0(p[1]-33)+'px;width:78px;height:66px;animation-delay:'+((ci*6+k)*.07)+'s" data-c="'+ci+'" data-k="'+k+'"><i>'+EM[ci*6+k]+'</i><b>'+(ci*6+k+1)+'</b></div>'}});
  $('st').insertAdjacentHTML('beforeend','<div id="fac">'+illuSvg()+h+'</div>');
  document.querySelectorAll('#fac .door').forEach(d=>d.onclick=()=>openDoor(d,+d.dataset.c,+d.dataset.k));
 }
