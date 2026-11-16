@@ -75,8 +75,10 @@ body:not(:has(#st)){min-height:100vh;background:radial-gradient(ellipse at 50% 0
 #app .bar{height:12px;margin:10px 0}
 
 /* Fragenansicht am Handy: immer genau ein Bildschirm, volle Breite, 2x2 gleich große Felder */
-body:has(#app.qm){height:100dvh;overflow:hidden;padding-left:8px;padding-right:8px}
-#app.qm{max-width:none;height:calc(100dvh - 8px);padding:6px 0;display:flex;flex-direction:column}
+body:has(#app.qm){height:100dvh;overflow:hidden;padding:0 8px}
+#app.qm{max-width:none;height:100dvh;padding:max(env(safe-area-inset-top,0px),10px) 0 max(env(safe-area-inset-bottom,0px),8px);display:flex;flex-direction:column}
+@supports (-webkit-touch-callout:none){#app.qm{padding-top:max(env(safe-area-inset-top,0px),54px)}}
+@supports (-webkit-touch-callout:none){#app:not(.qm){padding-top:max(env(safe-area-inset-top,0px),54px)}}
 #app.qm h1{display:none}
 #app.qm .bar{flex:0 0 10px;margin:0 0 8px}
 #app.qm .q{flex:0 1 auto;max-height:36%;overflow:hidden;margin:0 0 8px;font-size:21px;line-height:1.2;padding:10px 14px}
