@@ -44,11 +44,16 @@ const match=(x,L)=>L.some(r=>{const a=norm(x),b=norm(r);return b&&lev(a,b)<=Math
 function score(q,ans,t0){
  const l=ans.map(a=>({...a,ms:new Date(a.created_at)-t0}));let ok,key;
  if(q.type==='mc'){ok=l.filter(a=>+a.value===q.correct);key=a=>a.ms}
+ else if(q.type==='text'&&q.nslots>1){
+  const NS=q.nslots;l.forEach(a=>{let g;try{g=JSON.parse(a.value)}catch(e){g=[a.value]}if(!Array.isArray(g))g=[String(g)];const used=new Set();let n=0;
+   (q.slots||[]).slice(0,NS).forEach(sl=>{const i=g.findIndex((x,gi)=>!used.has(gi)&&x&&match(x,sl));if(i>=0){used.add(i);n++}});a.n=n});
+  ok=l.filter(a=>a.n>0);key=a=>(NS-a.n)*1e7+a.ms}
  else if(q.type==='text'){ok=l.filter(a=>match(a.value,q.answers||[]));key=a=>a.ms}
  else{ok=l.map(a=>({...a,d:Math.abs(parseFloat(String(a.value).replace(',','.'))-q.answer)})).filter(a=>!isNaN(a.d));key=a=>a.d}
  ok.sort((a,b)=>key(a)-key(b));
  const out={},N=ok.length;let r=0;
  ok.forEach((a,i)=>{if(i&&key(a)!==key(ok[i-1]))r=i;out[a.player_id]=N<2?1000:Math.round(1000-900*r/(N-1))});
+ if(q.type==='text'&&q.nslots>1)ok.forEach(a=>{out[a.player_id]=Math.round(out[a.player_id]*a.n/q.nslots)});
  return{out,ok};
 }
 
@@ -81,9 +86,10 @@ function media(q,secs){
   const loop=()=>{if(im.complete&&im.width)draw(Math.min(1,(Date.now()-t0)/(secs*1000)));raf=requestAnimationFrame(loop)};loop();
   md._full=()=>{cancelAnimationFrame(raf);if(im.width)draw(1)};
  }
- else if(q.reveal==='audio'&&q.audio){
+ else if(q.reveal==='audio'&&(q.tracks&&q.tracks.some(t=>t.src)||q.audio)){
+  const TR=(q.tracks&&q.tracks.length?q.tracks:[q.audio&&{src:q.audio,s:q.a1s,e:q.a1e,v:q.a1v},q.audio2&&{src:q.audio2,s:q.a2s,e:q.a2e,v:q.a2v,d:q.a2d}]).filter(t=>t&&t.src);
   const mix=()=>{T.forEach(clearTimeout);T.length=0;AU.forEach(x=>x.pause());AU.length=0;
-   [[q.audio,'a1',0],[q.audio2,'a2',1]].forEach(([src,p,i])=>{if(!src)return;const x=new Audio(src),nm=(k,d)=>{const v=q[p+k];return v===''||v==null||isNaN(+v)?d:+v},s=nm('s',0),e=nm('e',null),dl=i?(+q.a2d||0):0;
+   TR.forEach(t=>{const x=new Audio(t.src),nm=(k,d)=>{const v=t[k];return v===''||v==null||isNaN(+v)?d:+v},s=nm('s',0),e=nm('e',null),dl=nm('d',0);
     x.volume=Math.max(0,Math.min(1,nm('v',100)/100));x.addEventListener('loadedmetadata',()=>{x.currentTime=s});AU.push(x);
     T.push(setTimeout(()=>{x.play().catch(()=>{});if(e!=null)T.push(setTimeout(()=>x.pause(),Math.max(0,e-s)*1000))},dl*1000))})};
   mix();md.innerHTML='<button class="btn" style="margin:0" id="rp">🔁 Nochmal</button>';$('rp').onclick=mix}
@@ -95,7 +101,7 @@ function media(q,secs){
 async function play(q,k,tag){
  const secs=q.timeLimit||20,np=(await players()).length,off=['audio','synth','rhythm'].includes(q.reveal);
  Music.mode(off?'off':'quiz',off?.8:3);clearFac();corner(false);
- const t0=new Date(await set('question',{qkey:k,type:q.type,text:q.text,options:q.options,unit:q.unit,secs},secs));
+ const t0=new Date(await set('question',{qkey:k,type:q.type,text:q.text,options:q.options,unit:q.unit,slots:q.nslots>1?q.nslots:0,secs},secs));
  V.innerHTML='<div style="font-size:34px;color:#f5c542">'+esc(tag)+'</div><div class="q">'+esc(q.text)+'</div><div class="bar"><i id="bar"></i></div>'
   +(q.type==='mc'?'<div class="opts">'+q.options.map((o,i)=>'<div class="opt" style="background:'+COL[i]+'">'+SYM[i]+'  '+esc(o)+'</div>').join('')+'</div>':q.type==='estimate'?'<div style="font-size:50px;margin-top:30px">Schätze! '+(q.unit?'(in '+esc(q.unit)+')':'')+'</div>':'')
   +'<div id="md"></div><div style="display:flex;align-items:center;margin-top:auto"><span id="cnt" style="font-size:36px"></span><button class="btn" id="skip" style="margin-left:auto">Auflösen ⏭</button></div>';
@@ -111,11 +117,15 @@ async function play(q,k,tag){
  await rpc('host_scores',{deltas:Object.entries(out).map(([id,p])=>({id,p}))});
  Music.mode('menu',3.5);await set('reveal',{qkey:k,out});if(ok.length)burst($('st'));
  const P=Object.fromEntries((await players()).map(p=>[p.id,p]));
- const right=q.type==='mc'?q.options[q.correct]:q.type==='estimate'?q.answer+(q.unit?' '+q.unit:''):(q.answers||[])[0];
+ let wrong=[];
+ if(q.type==='text'&&q.showWrong!=='no'){const seen=new Set(),all=q.nslots>1?[].concat(...(q.slots||[])):(q.answers||[]);
+  ans.forEach(a=>{let g;try{g=JSON.parse(a.value)}catch(e){g=[a.value]}if(!Array.isArray(g))g=[String(g)];g.forEach(x=>{x=String(x||'').trim();if(!x||match(x,all))return;const k=norm(x);if(!k||seen.has(k))return;seen.add(k);wrong.push(x.slice(0,40))})});
+  wrong=wrong.sort(()=>Math.random()-.5).slice(0,8)}
+ const right=q.type==='text'&&q.nslots>1?(q.slots||[]).slice(0,q.nslots).map(s=>s[0]).join('  ·  '):q.type==='mc'?q.options[q.correct]:q.type==='estimate'?q.answer+(q.unit?' '+q.unit:''):(q.answers||[])[0];
  V.innerHTML='<div class="q">'+esc(q.text)+'</div><h2 style="color:#9be7a8;margin-top:30px">✅ '+esc(right)+'</h2>'
   +'<div style="font-size:44px;margin-top:10px">'+(ok.length?'Schnellste/Beste:':'Niemand hatte es richtig 😅')+'</div>'
-  +ok.slice(0,5).map(a=>'<div class="rk" style="font-size:44px;padding:8px 26px;margin:6px 0"><span>'+(P[a.player_id]?P[a.player_id].icon+' '+esc(P[a.player_id].name):'?')+'</span><em>+'+out[a.player_id]+'</em></div>').join('')
-  +(md_full(),'')+'<button class="btn" id="nx">Weiter ➜</button>';
+  +ok.slice(0,wrong.length?3:5).map(a=>'<div class="rk" style="font-size:44px;padding:8px 26px;margin:6px 0"><span>'+(P[a.player_id]?P[a.player_id].icon+' '+esc(P[a.player_id].name):'?')+'</span><em>+'+out[a.player_id]+'</em></div>').join('')
+  +(wrong.length?'<div style="font-size:34px;margin-top:16px;color:#d8c9a8">Das haben andere getippt:</div><div id="wr">'+wrong.map(w=>'<span>'+esc(w)+'</span>').join('')+'</div>':'')+(md_full(),'')+'<button class="btn" id="nx">Weiter ➜</button>';
  await click('nx');
 }
 function md_full(){}

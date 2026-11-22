@@ -86,3 +86,9 @@ body:has(#app.qm){height:100dvh;overflow:hidden;padding:0 8px}
 #app.qm .mc button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;text-align:center;width:100%;height:100%;min-height:0;padding:6px;font-size:22px;line-height:1.15;overflow:hidden;overflow-wrap:anywhere;hyphens:auto}
 #app.qm .mc button i{font-style:normal;font-size:.9em;opacity:.85}
 #app.qm .mc button span{display:block}
+
+#app.qm input{margin-bottom:8px}
+
+#wr{display:flex;flex-wrap:wrap;gap:12px;margin-top:10px}
+#wr span{font-size:34px;padding:8px 20px;border-radius:26px;color:var(--ink);background:linear-gradient(160deg,var(--par),var(--par2));border:3px solid #8a5a1c;animation:pop .5s both}
+#wr span:nth-child(2){animation-delay:.1s}#wr span:nth-child(3){animation-delay:.2s}#wr span:nth-child(4){animation-delay:.3s}#wr span:nth-child(5){animation-delay:.4s}#wr span:nth-child(6){animation-delay:.5s}#wr span:nth-child(7){animation-delay:.6s}#wr span:nth-child(8){animation-delay:.7s}
