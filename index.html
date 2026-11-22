@@ -9,7 +9,7 @@
 <script>
 const sb=supabase.createClient(CFG.url,CFG.key,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}}),A=document.getElementById('app');
 const ICONS=['🎅','🤶','🦌','⛄','🎄','🎁','⭐','🔔','🍪','🧝','🕯️','🧦','🥛','❄️','🦃','🍷'];
-const COL=['#9b1c2c','#1f4e79','#a8741a','#2f6b3a'],SYM=['▲','◆','●','■'];
+const COL=['#9b1c2c','#1f4e79','#a8741a','#2f6b3a','#5b2a86','#1d6b6b'],SYM=['▲','◆','●','■','★','♥'];
 let at,me=null,g={phase:'lobby',data:{}},icon='',sent={},tm;
 try{me=JSON.parse(localStorage.getItem('me61'))}catch(e){}
 const esc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
@@ -41,7 +41,8 @@ async function render(){
  if(g.phase==='question'){
   if(sent[d.qkey])return put('<div class="big">✅</div><p>Antwort gesendet!<br>Warte auf die anderen …</p>');
   let h='<div class="bar"><i id="b"></i></div><div class="q" id="qq">'+esc(d.text)+'</div>';
-  if(d.type==='mc')h+='<div class="mc">'+d.options.map((o,i)=>'<button data-a="'+i+'" style="background:'+COL[i]+'"><i>'+SYM[i]+'</i><span>'+esc(o)+'</span></button>').join('')+'</div>';
+  const PK=d.type==='mc'?Math.max(1,d.pick||1):0;
+  if(d.type==='mc')h+=(PK>1?'<div class="pk" id="pk">Wähle '+PK+' Antworten (0/'+PK+')</div>':'')+'<div class="mc" style="grid-template-rows:repeat('+Math.ceil(d.options.length/2)+',minmax(0,1fr))">'+d.options.map((o,i)=>'<button data-a="'+i+'" style="background:'+COL[i]+'"><i>'+SYM[i]+'</i><span>'+esc(o)+'</span></button>').join('')+'</div>'+(PK>1?'<button class="go" id="s" disabled>Senden</button>':'');
   else if(d.slots>1)h+=Array.from({length:d.slots},(_,i)=>'<input class="an" placeholder="Antwort '+(i+1)+'" autocomplete="off">').join('')+'<button class="go" id="s">Senden</button>';
   else h+='<input id="an" '+(d.type==='estimate'?'type="number" step="any" inputmode="decimal" placeholder="Deine Schätzung'+(d.unit?' ('+esc(d.unit)+')':'')+'"':'placeholder="Deine Antwort"')+' autocomplete="off"><button class="go" id="s">Senden</button>';
   put(h);A.className='qm';
@@ -53,10 +54,13 @@ async function render(){
    const r=await sb.from('answers').insert({player_id:me.id,qkey:d.qkey,value:String(v)});
    put(r.error?'<div class="big">⌛</div><p>Zu spät – die Zeit ist abgelaufen.</p>':'<div class="big">'+(auto?'⏰':'✅')+'</div><p>'+(auto?'Zeit abgelaufen – deine Antwort wurde automatisch gesendet!':'Antwort gesendet!')+'<br>Warte auf die anderen …</p>');
   };
-  const grab=()=>{if(d.type==='mc')return null;if(d.slots>1){const v=[...document.querySelectorAll('.an')].map(x=>x.value.trim());return v.some(Boolean)?JSON.stringify(v):null}const e=document.getElementById('an'),v=e?e.value.trim():'';return v||null};
+  let chosen=[];
+  const grab=()=>{if(d.type==='mc')return PK>1&&chosen.length?JSON.stringify(chosen):null;if(d.slots>1){const v=[...document.querySelectorAll('.an')].map(x=>x.value.trim());return v.some(Boolean)?JSON.stringify(v):null}const e=document.getElementById('an'),v=e?e.value.trim():'';return v||null};
   at=setTimeout(()=>{if(sent[d.qkey])return;const v=grab();if(v!=null)send(v,true);else put('<div class="big">⌛</div><p>Zeit abgelaufen!</p>')},Math.max(500,(secs-1.2)*1000));
-  A.querySelectorAll('.mc button').forEach(b=>b.onclick=()=>send(b.dataset.a));
-  const s=document.getElementById('s');if(s)s.onclick=()=>{if(d.slots>1){const v=[...document.querySelectorAll('.an')].map(x=>x.value.trim());if(v.some(Boolean))send(JSON.stringify(v))}else{const v=document.getElementById('an').value.trim();if(v)send(v)}};
+  A.querySelectorAll('.mc button').forEach(b=>b.onclick=()=>{const a=+b.dataset.a;if(PK<2)return send(a);
+   if(chosen.includes(a))chosen=chosen.filter(x=>x!==a);else if(chosen.length<PK)chosen.push(a);else return;
+   b.classList.toggle('sel',chosen.includes(a));document.getElementById('pk').textContent='Wähle '+PK+' Antworten ('+chosen.length+'/'+PK+')';document.getElementById('s').disabled=chosen.length!==PK});
+  const s=document.getElementById('s');if(s)s.onclick=()=>{if(d.type==='mc'){if(chosen.length===PK)send(JSON.stringify(chosen.slice().sort()));return}if(d.slots>1){const v=[...document.querySelectorAll('.an')].map(x=>x.value.trim());if(v.some(Boolean))send(JSON.stringify(v))}else{const v=document.getElementById('an').value.trim();if(v)send(v)}};
  }else if(g.phase==='reveal'){
   const p=(d.out||{})[me.id]||0,r=await place();if(p>0)burst(document.body);
   put('<div class="big">'+(p>0?'🎉':'😅')+'</div><p>'+(p>0?'Richtig! <b>+'+p+'</b> Punkte':'Leider keine Punkte')+'</p><p>Platz <b>'+r.rank+'</b> von '+r.n+' · '+r.score+' Punkte</p>');

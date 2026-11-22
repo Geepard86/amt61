@@ -92,3 +92,14 @@ body:has(#app.qm){height:100dvh;overflow:hidden;padding:0 8px}
 #wr{display:flex;flex-wrap:wrap;gap:12px;margin-top:10px}
 #wr span{font-size:34px;padding:8px 20px;border-radius:26px;color:var(--ink);background:linear-gradient(160deg,var(--par),var(--par2));border:3px solid #8a5a1c;animation:pop .5s both}
 #wr span:nth-child(2){animation-delay:.1s}#wr span:nth-child(3){animation-delay:.2s}#wr span:nth-child(4){animation-delay:.3s}#wr span:nth-child(5){animation-delay:.4s}#wr span:nth-child(6){animation-delay:.5s}#wr span:nth-child(7){animation-delay:.6s}#wr span:nth-child(8){animation-delay:.7s}
+
+/* Multiple Choice mit 5–6 Antworten & Mehrfachauswahl */
+.opts.o6{grid-template-columns:repeat(3,1fr);gap:18px}
+.opts.o6 .opt{font-size:34px;padding:24px 26px}
+.opt:nth-child(5){animation-delay:.48s}.opt:nth-child(6){animation-delay:.6s}
+.mc button:nth-child(5){animation-delay:.28s}.mc button:nth-child(6){animation-delay:.35s}
+.mc button.sel{outline:5px solid #fff;outline-offset:-5px;filter:brightness(1.25);transform:scale(.97)}
+.mc button.sel span::before{content:'✔ '}
+.pk{text-align:center;font-weight:700;color:#f5c542;margin:0 0 6px;font-size:18px}
+#app.qm .go{flex:0 0 auto;margin-top:8px}
+.go:disabled{opacity:.45}
