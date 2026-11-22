@@ -70,7 +70,7 @@ function synth(q){
 
 /* Medien auf dem Beamer: gibt eine Stopp-Funktion zurück */
 function media(q,secs){
- const md=$('md'),T=[];let raf,au;
+ const md=$('md'),T=[],AU=[];let raf;
  if(q.reveal==='steps'){const s=q.steps||[];s.forEach((x,i)=>T.push(setTimeout(()=>md.insertAdjacentHTML('beforeend',/^[^\w]{1,8}$/u.test(x)?'<span>'+esc(x)+'</span>':'<div>'+esc(x)+'</div>'),i*secs*600/Math.max(1,s.length))))}
  else if(q.reveal==='pixelate'||q.reveal==='zoom'){
   md.innerHTML='<canvas id="cv" width="1100" height="620" style="border-radius:16px"></canvas>';
@@ -81,9 +81,14 @@ function media(q,secs){
   const loop=()=>{if(im.complete&&im.width)draw(Math.min(1,(Date.now()-t0)/(secs*1000)));raf=requestAnimationFrame(loop)};loop();
   md._full=()=>{cancelAnimationFrame(raf);if(im.width)draw(1)};
  }
- else if(q.reveal==='audio'&&q.audio){au=new Audio(q.audio);au.play().catch(()=>{});md.innerHTML='<button class="btn" style="margin:0" id="rp">🔁 Nochmal</button>';$('rp').onclick=()=>{au.currentTime=0;au.play()}}
+ else if(q.reveal==='audio'&&q.audio){
+  const mix=()=>{T.forEach(clearTimeout);T.length=0;AU.forEach(x=>x.pause());AU.length=0;
+   [[q.audio,'a1',0],[q.audio2,'a2',1]].forEach(([src,p,i])=>{if(!src)return;const x=new Audio(src),nm=(k,d)=>{const v=q[p+k];return v===''||v==null||isNaN(+v)?d:+v},s=nm('s',0),e=nm('e',null),dl=i?(+q.a2d||0):0;
+    x.volume=Math.max(0,Math.min(1,nm('v',100)/100));x.addEventListener('loadedmetadata',()=>{x.currentTime=s});AU.push(x);
+    T.push(setTimeout(()=>{x.play().catch(()=>{});if(e!=null)T.push(setTimeout(()=>x.pause(),Math.max(0,e-s)*1000))},dl*1000))})};
+  mix();md.innerHTML='<button class="btn" style="margin:0" id="rp">🔁 Nochmal</button>';$('rp').onclick=mix}
  else if(q.reveal==='synth'||q.reveal==='rhythm'){synth(q);md.innerHTML='<button class="btn" style="margin:0" id="rp">🔁 Nochmal</button>';$('rp').onclick=()=>synth(q)}
- return()=>{T.forEach(clearTimeout);cancelAnimationFrame(raf);if(md._full)md._full();if(au)au.pause();stopAudio()};
+ return()=>{T.forEach(clearTimeout);cancelAnimationFrame(raf);if(md._full)md._full();AU.forEach(x=>x.pause());stopAudio()};
 }
 
 /* Eine Frage durchspielen */

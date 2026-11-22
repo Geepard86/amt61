@@ -143,11 +143,18 @@ function editor(){
   h+=field('Darstellung','<select data-k="reveal">'+Object.keys(REV).map(function(k){return '<option value="'+k+'"'+(q.reveal===k?' selected':'')+'>'+REV[k]+'</option>'}).join('')+'</select>');
   if(q.reveal==='steps')h+=field('Schritte (eine pro Zeile, werden nacheinander eingeblendet)','<textarea data-list="steps">'+esc((q.steps||[]).join('\n'))+'</textarea><div class="steps" id="stp"></div>');
   if(q.reveal==='pixelate'||q.reveal==='zoom'){
-   h+=field('Bild (Datei liegt später im Repo unter assets/)','<input type="file" accept="image/*" id="fimg"><div class="note">Aktuell: '+esc(q.image||'–')+'</div>');
+   h+=field('Bild (wird in Supabase gespeichert)','<input type="file" accept="image/*" id="fimg">'+msel('simg',q.image,'img')+'<div class="note">Aktuell: '+esc(fname(q.image))+'</div>');
    if(q.reveal==='zoom')h+=field('Zoom-Fokus in % (X / Y) &amp; Start-Zoom','<div class="g"><input type="number" data-k="fx" value="'+(q.fx==null?50:q.fx)+'"><input type="number" data-k="fy" value="'+(q.fy==null?50:q.fy)+'"></div><input type="number" data-k="zoom" value="'+(q.zoom||8)+'" style="margin-top:6px">');
    h+='<label>Vorschau – Fortschritt</label><input type="range" id="pg" min="0" max="100" value="0"><canvas id="cv" width="640" height="360"></canvas>';
   }
-  if(q.reveal==='audio')h+=field('Audiodatei','<input type="file" accept="audio/*" id="faud"><div class="note">Aktuell: '+esc(q.audio||'–')+'</div><audio id="au" controls style="width:100%;margin-top:6px"></audio>');
+  if(q.reveal==='audio'){
+   const num=(k,l,ph)=>'<div><label>'+l+'</label><input type="number" step="any" min="0" data-k="'+k+'" placeholder="'+ph+'" value="'+(q[k]==null?'':esc(q[k]))+'"></div>';
+   h+=field('Audiodatei 1 (Basis)','<input type="file" accept="audio/*" id="faud">'+msel('saud',q.audio,'aud')+'<div class="note">Aktuell: '+esc(fname(q.audio))+' <b id="d1"></b></div>');
+   h+='<div class="g" style="grid-template-columns:repeat(3,1fr)">'+num('a1s','Start (Sek.)','0')+num('a1e','Ende (Sek.)','bis Schluss')+num('a1v','Lautstärke %','100')+'</div>';
+   h+=field('Audiodatei 2 (optional, wird darübergelegt)','<input type="file" accept="audio/*" id="faud2">'+msel('saud2',q.audio2,'aud')+'<div class="note">Aktuell: '+esc(fname(q.audio2))+' <b id="d2"></b></div>');
+   h+='<div class="g" style="grid-template-columns:repeat(4,1fr)">'+num('a2s','Start (Sek.)','0')+num('a2e','Ende (Sek.)','bis Schluss')+num('a2v','Lautstärke %','100')+num('a2d','Einsatz nach (Sek.)','0')+'</div>';
+   h+='<div style="margin-top:8px"><button class="p" id="mx">▶ Mix anhören</button> <button id="mxs">■ Stopp</button></div><div class="note">Zuschneiden: Start/Ende der Datei in Sekunden (die hochgeladene Datei bleibt unverändert, der Zuschnitt gilt nur beim Abspielen). „Einsatz nach“ verzögert Datei 2 gegenüber Datei 1.</div>';
+  }
   if(q.reveal==='synth'||q.reveal==='rhythm'){
    h+=field('Noten (Format F#5:.5 E5:1 R:.5 – R = Pause, Länge in Vierteln)','<textarea data-k="notes">'+esc(q.notes||'')+'</textarea>');
    h+='<div class="g"><div><label>Tempo (BPM)</label><input type="number" data-k="bpm" value="'+(q.bpm||112)+'"></div><div><label>Klang</label><select data-k="voice">'+['ring:Handy-Klingelton','bit:8-Bit','sour:Verstimmt','kazoo:Kazoo','wood:Holzblock (Rhythmus)'].map(function(o){var p=o.split(':');return '<option value="'+p[0]+'"'+((q.voice||'ring')===p[0]?' selected':'')+'>'+p[1]+'</option>'}).join('')+'</select></div></div>';
@@ -159,8 +166,7 @@ function editor(){
  $('ed').innerHTML=h;
  if(q.reveal==='steps')stp();
  if(q.reveal==='pixelate'||q.reveal==='zoom')prev();
- if(q.reveal==='audio'&&blobs.get(q)&&blobs.get(q).a)$('au').src=blobs.get(q).a;
- else if(q.reveal==='audio'&&q.audio)$('au').src=q.audio;
+ if(q.reveal==='audio')[['audio','a','d1'],['audio2','a2','d2']].forEach(function(d){var src=(blobs.get(q)&&blobs.get(q)[d[1]])||q[d[0]];if(!src)return;var x=new Audio(src);x.onloadedmetadata=function(){var e=document.getElementById(d[2]);if(e)e.textContent='(Länge: '+x.duration.toFixed(1)+' s)'}});
 }
 function stp(){var e=$('stp');if(e)e.innerHTML=(cur().steps||[]).map(function(s){return '<span>'+esc(s)+'</span>'}).join('')}
 
@@ -189,6 +195,25 @@ function norm(s){return String(s).toLowerCase().replace(/ä/g,'ae').replace(/ö/
 function lev(a,b){var m=[],i,j;for(i=0;i<=a.length;i++)m[i]=[i];for(j=1;j<=b.length;j++)m[0][j]=j;for(i=1;i<=a.length;i++)for(j=1;j<=b.length;j++)m[i][j]=Math.min(m[i-1][j]+1,m[i][j-1]+1,m[i-1][j-1]+(a[i-1]===b[j-1]?0:1));return m[a.length][b.length]}
 function match(inp,answers){var a=norm(inp);return answers.some(function(r){var b=norm(r);return b&&lev(a,b)<=Math.floor(b.length/5)})}
 
+/* Medien: Upload in Supabase Storage (Bucket quiz-media) + Auswahl vorhandener Dateien */
+var BUCKET='quiz-media',media=[];
+function loadMedia(cb){if(!sb||!sb.storage){if(cb)cb();return}sb.storage.from(BUCKET).list('',{limit:500,sortBy:{column:'created_at',order:'desc'}}).then(function(r){if(r.error)st('⚠ Medien: '+r.error.message);media=(r.data||[]).filter(function(f){return f.name&&f.name.charAt(0)!=='.'});if(cb)cb()})}
+function murl(n){return sb.storage.from(BUCKET).getPublicUrl(n).data.publicUrl}
+function fname(u){return u?decodeURIComponent(String(u).split('/').pop()).replace(/^\d+-/,''):'–'}
+function msel(id,cur,kind){var ex=kind==='img'?/\.(png|jpe?g|webp|gif|avif)$/i:/\.(mp3|ogg|wav|m4a|aac|flac)$/i;
+ return '<select id="'+id+'"><option value="">– vorhandene Datei wählen ('+media.filter(function(f){return ex.test(f.name)}).length+') –</option>'+media.filter(function(f){return ex.test(f.name)}).map(function(f){var u=murl(f.name);return '<option value="'+esc(u)+'"'+(u===cur?' selected':'')+'>'+esc(fname(f.name))+'</option>'}).join('')+'</select>'}
+function upl(f,cb){if(!sb||!sb.storage){alert('Supabase ist nicht verbunden.');return}
+ st('Lade '+f.name+' hoch …');var n=Date.now()+'-'+f.name.replace(/[^\w.\-]+/g,'_');
+ sb.storage.from(BUCKET).upload(n,f,{upsert:true,contentType:f.type||undefined}).then(function(r){if(r.error){st('⚠ Upload: '+r.error.message);return}st('☁ Hochgeladen: '+f.name);loadMedia(function(){cb(murl(n))})})}
+/* Mix-Vorschau für Audiofragen (zwei Dateien übereinander, Zuschnitt, Lautstärke, Versatz) */
+var mixA=[],mixT=[];
+function mixStop(){mixA.forEach(function(x){x.pause()});mixA=[];mixT.forEach(clearTimeout);mixT=[]}
+function mixPlay(q){mixStop();[['audio','a1','a',0],['audio2','a2','a2',1]].forEach(function(d){
+ var src=(blobs.get(q)&&blobs.get(q)[d[2]])||q[d[0]];if(!src)return;
+ var x=new Audio(src),num=function(k,def){var v=q[d[1]+k];return v===''||v==null||isNaN(+v)?def:+v};
+ var s=num('s',0),e=num('e',null),dl=d[3]?(+q.a2d||0):0;x.volume=Math.max(0,Math.min(1,num('v',100)/100));
+ x.addEventListener('loadedmetadata',function(){x.currentTime=s});mixA.push(x);
+ mixT.push(setTimeout(function(){x.play().catch(function(){});if(e!=null)mixT.push(setTimeout(function(){x.pause()},Math.max(0,e-s)*1000))},dl*1000))})}
 /* Audio-Engine */
 var AC,live=[];
 function stop(){live.forEach(function(n){try{n.stop()}catch(e){}});live=[]}
@@ -235,10 +260,15 @@ $('ed').addEventListener('input',function(e){
 });
 $('ed').addEventListener('change',function(e){
  var t=e.target,q=cur(),f=t.files&&t.files[0];
- if(t.id==='fimg'&&f){q.image='assets/'+f.name;blobs.set(q,Object.assign(blobs.get(q)||{},{i:URL.createObjectURL(f)}));save();tree();editor()}
- if(t.id==='faud'&&f){q.audio='assets/'+f.name;blobs.set(q,Object.assign(blobs.get(q)||{},{a:URL.createObjectURL(f)}));save();tree();editor()}
+ if(f&&t.id==='fimg')upl(f,function(u){q.image=u;save();tree();editor()});
+ if(f&&t.id==='faud')upl(f,function(u){q.audio=u;save();tree();editor()});
+ if(f&&t.id==='faud2')upl(f,function(u){q.audio2=u;save();tree();editor()});
+ if(t.value&&t.id==='simg'){q.image=t.value;save();tree();editor()}
+ if(t.value&&t.id==='saud'){q.audio=t.value;save();tree();editor()}
+ if(t.value&&t.id==='saud2'){q.audio2=t.value;save();tree();editor()}
 });
 $('ed').addEventListener('click',function(e){if(e.target.id==='cap'){var s=+$('ctm').value;if(s>0){var cc=D.categories[sel.c];cc.questions.concat(cc.specials).forEach(function(x){x.timeLimit=s});save();editor();$('ctm').value=s}}
+ if(e.target.id==='mx')mixPlay(cur());if(e.target.id==='mxs')mixStop();
  if(e.target.id==='pl')play(cur());if(e.target.id==='st')stop()});
 $('jbtn').onclick=function(){var s=$('js').style;s.display=s.display==='none'?'block':'none';$('jt').value=JSON.stringify(D,null,1)};
 $('jgen').onclick=function(){$('jt').value=JSON.stringify(D,null,1);$('jt').select()};
@@ -246,6 +276,7 @@ $('jload').onclick=function(){try{var n=JSON.parse($('jt').value);if(!n.categori
 $('jreset').onclick=function(){if(confirm('Alles auf die Standardfragen zurücksetzen?')){D=std();sel={c:0,s:'questions',i:0};save();tree();editor();$('jt').value=''}};
 tree();editor();
 document.getElementById('sbtn').onclick=push;
+loadMedia(function(){editor()});
 if(sb)sb.from('quiz').select('data').eq('id',1).maybeSingle().then(function(r){
  if(r.data&&r.data.data&&r.data.data.categories){D=r.data.data;sel={c:0,s:'questions',i:0};tree();editor();st('☁ Aus Supabase geladen')}
  else if(r.error)st('⚠ Supabase: '+r.error.message);
