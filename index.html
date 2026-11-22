@@ -63,7 +63,7 @@ async function render(){
   const s=document.getElementById('s');if(s)s.onclick=()=>{if(d.type==='mc'){if(chosen.length===PK)send(JSON.stringify(chosen.slice().sort()));return}if(d.slots>1){const v=[...document.querySelectorAll('.an')].map(x=>x.value.trim());if(v.some(Boolean))send(JSON.stringify(v))}else{const v=document.getElementById('an').value.trim();if(v)send(v)}};
  }else if(g.phase==='reveal'){
   const p=(d.out||{})[me.id]||0,r=await place();if(p>0)burst(document.body);
-  put('<div class="big">'+(p>0?'🎉':'😅')+'</div><p>'+(p>0?'Richtig! <b>+'+p+'</b> Punkte':'Leider keine Punkte')+'</p><p>Platz <b>'+r.rank+'</b> von '+r.n+' · '+r.score+' Punkte</p>');
+  put('<div class="big">'+(p>0?'🎉':'😅')+'</div><p>'+(p>0?'Richtig! <b>+'+p+'</b> Punkte':'Leider keine Punkte')+'</p><p>Platz <b>'+r.rank+'</b> von '+r.n+' · '+r.score+' Punkte</p>'+(d.fact?'<div class="fact"><b>💡 Wusstest du schon?</b>'+esc(d.fact)+'</div>':''));
  }else if(g.phase==='ranking'||g.phase==='final'){
   const r=await place();
   put('<div class="big">'+(g.phase==='final'?'🏆':'🏅')+'</div><p>'+(g.phase==='final'?'Endstand':'Zwischenstand')+'</p><p>Du bist auf Platz <b>'+r.rank+'</b> von '+r.n+'<br>'+r.score+' Punkte</p>');

@@ -103,3 +103,8 @@ body:has(#app.qm){height:100dvh;overflow:hidden;padding:0 8px}
 .pk{text-align:center;font-weight:700;color:#f5c542;margin:0 0 6px;font-size:18px}
 #app.qm .go{flex:0 0 auto;margin-top:8px}
 .go:disabled{opacity:.45}
+
+/* Funfact bei der Auflösung */
+.fact{margin-top:18px;font-size:34px;line-height:1.3;color:var(--ink);background:linear-gradient(160deg,var(--par),var(--par2));border:4px solid #8a5a1c;border-left:14px solid var(--gold);border-radius:18px;padding:16px 26px;box-shadow:0 8px 24px #0008;animation:rise .7s .6s both;max-height:220px;overflow:hidden}
+.fact b{display:block;font-size:.75em;color:#8a5a1c;margin-bottom:4px;letter-spacing:1px}
+#app .fact{font-size:16px;padding:12px 14px;border-width:3px;border-left-width:8px;margin-top:16px;max-height:none;text-align:left}

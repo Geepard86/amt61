@@ -126,18 +126,18 @@ async function play(q,k,tag){
  const ans=(await sb.from('answers').select('player_id,value,created_at').eq('qkey',k)).data||[];
  const {out,ok}=score(q,ans,t0);
  await rpc('host_scores',{deltas:Object.entries(out).map(([id,p])=>({id,p}))});
- Music.mode('menu',3.5);await set('reveal',{qkey:k,out});if(ok.length)burst($('st'));
+ Music.mode('menu',3.5);const fact=String(q.fact||'').trim();await set('reveal',{qkey:k,out,fact});if(ok.length)burst($('st'));
  const P=Object.fromEntries((await players()).map(p=>[p.id,p]));
  let wrong=[];
  if(q.type==='text'&&q.showWrong!=='no'){const seen=new Set(),all=q.nslots>1?[].concat(...(q.slots||[])):(q.answers||[]);
   ans.forEach(a=>{let g;try{g=JSON.parse(a.value)}catch(e){g=[a.value]}if(!Array.isArray(g))g=[String(g)];g.forEach(x=>{x=String(x||'').trim();if(!x||match(x,all))return;const k=norm(x);if(!k||seen.has(k))return;seen.add(k);wrong.push(x.slice(0,40))})});
-  wrong=wrong.sort(()=>Math.random()-.5).slice(0,8)}
+  wrong=wrong.sort(()=>Math.random()-.5).slice(0,q.fact&&String(q.fact).trim()?5:8)}
  const right=q.type==='text'&&q.nslots>1?(q.slots||[]).slice(0,q.nslots).map(s=>s[0]).join('  ·  '):q.type==='mc'?cors(q).map(i=>q.options[i]).join('  ·  '):q.type==='estimate'?q.answer+(q.unit?' '+q.unit:''):(q.answers||[])[0];
  const pic=['image','pixelate','zoom'].includes(q.reveal)&&q.image;
  V.innerHTML=(pic?'<div style="display:flex;gap:40px;align-items:flex-start;min-height:0"><div style="flex:1;min-width:0">':'')+'<div class="q">'+esc(q.text)+'</div><h2 style="color:#9be7a8;margin-top:30px">✅ '+esc(right)+'</h2>'
   +'<div style="font-size:44px;margin-top:10px">'+(ok.length?'Schnellste/Beste:':'Niemand hatte es richtig 😅')+'</div>'
-  +ok.slice(0,wrong.length?3:5).map(a=>'<div class="rk" style="font-size:44px;padding:8px 26px;margin:6px 0"><span>'+(P[a.player_id]?P[a.player_id].icon+' '+esc(P[a.player_id].name):'?')+'</span><em>+'+out[a.player_id]+'</em></div>').join('')
-  +(wrong.length?'<div style="font-size:34px;margin-top:16px;color:#d8c9a8">Das haben andere getippt:</div><div id="wr">'+wrong.map(w=>'<span>'+esc(w)+'</span>').join('')+'</div>':'')+(pic?'</div><img class="rvimg" alt="" src="'+String(q.image).replace(/"/g,'&quot;').replace(/</g,'&lt;')+'"></div>':'')+'<button class="btn" id="nx">Weiter ➜</button>';
+  +ok.slice(0,wrong.length||fact?3:5).map(a=>'<div class="rk" style="font-size:44px;padding:8px 26px;margin:6px 0"><span>'+(P[a.player_id]?P[a.player_id].icon+' '+esc(P[a.player_id].name):'?')+'</span><em>+'+out[a.player_id]+'</em></div>').join('')
+  +(wrong.length?'<div style="font-size:34px;margin-top:16px;color:#d8c9a8">Das haben andere getippt:</div><div id="wr">'+wrong.map(w=>'<span>'+esc(w)+'</span>').join('')+'</div>':'')+(fact?'<div class="fact"><b>💡 Wusstest du schon?</b>'+esc(fact)+'</div>':'')+(pic?'</div><img class="rvimg" alt="" src="'+String(q.image).replace(/"/g,'&quot;').replace(/</g,'&lt;')+'"></div>':'')+'<button class="btn" id="nx">Weiter ➜</button>';
  await click('nx');
 }
 function md_full(){}

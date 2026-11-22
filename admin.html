@@ -186,6 +186,7 @@ function editor(){
   h+=field('Falsche Tipps nach der Auflösung anonym am Beamer zeigen','<select data-k="showWrong"><option value="">Ja (ohne Namen)</option><option value="no"'+(q.showWrong==='no'?' selected':'')+'>Nein</option></select>');
   h+=field('Antwort testen (Fuzzy-Match)','<input id="tst" placeholder="Tippfehler ausprobieren …"><div id="res"></div>');
  }
+ h+=field('💡 Funfact bei der Auflösung (optional – erscheint auf Beamer &amp; Handys)','<textarea data-k="fact" placeholder="z. B. Der höchste Weihnachtsbaum der Welt war 67 m hoch." style="font-family:inherit;font-size:15px;min-height:60px">'+esc(q.fact||'')+'</textarea>');
  h+=field('Zeit nur für diese Frage (Sekunden)','<input type="number" data-k="timeLimit" value="'+(q.timeLimit||20)+'" style="max-width:120px">');
  $('ed').innerHTML=h;
  if(q.reveal==='steps')stp();
