@@ -13,6 +13,12 @@ header{padding:14px 22px;display:flex;gap:16px;align-items:center;flex-wrap:wrap
 h1{margin:0;font-size:24px;color:var(--gold)}
 main{display:grid;grid-template-columns:minmax(260px,340px) 1fr;gap:16px;padding:16px;align-items:start}
 @media(max-width:800px){main{grid-template-columns:1fr}}
+#pvw{grid-column:2}
+@media(min-width:1450px){main{grid-template-columns:300px minmax(0,1fr) minmax(460px,38%)}#pvw{grid-column:3;grid-row:1;position:sticky;top:10px}}
+@media(max-width:800px){#pvw{grid-column:auto}}
+#pvf{width:100%;aspect-ratio:16/9;border:0;border-radius:10px;margin-top:8px;background:#2a0a10;display:block}
+.it.sl{margin-left:14px;font-size:13px;color:var(--gold)}
+.slb{opacity:.55}.slb:hover{opacity:1}
 .pane{background:var(--card);border-radius:14px;padding:14px}
 button{font:inherit;padding:6px 12px;border-radius:8px;border:2px solid var(--gold);background:transparent;color:var(--ink);cursor:pointer}
 button.p{background:var(--red);border-color:var(--red)}
@@ -49,6 +55,7 @@ canvas{max-width:100%;border-radius:10px;background:#000}
 <header>
 <h1>🎄 Amt 61 – Quiz-Admin</h1>
 <span class="note">Änderungen werden automatisch in Supabase gespeichert (und als Sicherung im Browser).</span> <b id="sbs" style="font-size:13px"></b>
+<label style="margin:0;display:flex;gap:6px;align-items:center;color:var(--ink)">Punkte: <select id="scm" style="width:auto;padding:4px 6px"><option value="rank">nach Reihenfolge (1. = 1000 … Letzte/r = 100)</option><option value="time">nach Zeit (sofort = 1000 … Ende = 100)</option></select></label>
 <button id="sbtn" class="p">☁ Jetzt speichern</button> <button id="jbtn">JSON ein-/ausblenden</button>
 </header>
 <main>
@@ -61,6 +68,7 @@ canvas{max-width:100%;border-radius:10px;background:#000}
 <textarea id="jt" style="min-height:240px;margin-top:8px"></textarea>
 </div>
 </div>
+<div class="pane" id="pvw"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b style="color:var(--gold)">🖥️ Beamer-Vorschau</b><span class="note" style="flex:1">aktualisiert sich beim Tippen</span><button id="pvrun" class="p">▶ Ablauf abspielen</button><button id="pvst">Antworten zeigen</button></div><iframe id="pvf" src="host.html#preview" title="Beamer-Vorschau"></iframe><div class="note">„Ablauf abspielen“ zeigt Vorlesezeit, Einblenden und Bild-Animation (ohne Ton).</div></div>
 </main>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="config.js"></script>
@@ -142,12 +150,22 @@ function tree(){
  $('tree').innerHTML=h;
 }
 function row(ci,s,i,q){
- var on=sel.c===ci&&sel.s===s&&sel.i===i;
- return '<div class="it'+(on?' on':'')+'" data-sel="'+ci+':'+s+':'+i+'"><span class="'+(done(q)?'':'todo')+'">●</span><span class="t">'+(i+1)+'. '+esc(q.text||'(leer)')+'</span><button class="s" data-mv="'+ci+':'+s+':'+i+':-1">↑</button><button class="s" data-mv="'+ci+':'+s+':'+i+':1">↓</button><button class="s" data-del="'+ci+':'+s+':'+i+'">✕</button></div>';
+ var on=sel.c===ci&&sel.s===s&&sel.i===i&&!sel.f,h='';
+ if(q.slide)h+='<div class="it sl'+(sel.c===ci&&sel.s===s&&sel.i===i&&sel.f?' on':'')+'" data-sel="'+ci+':'+s+':'+i+':f"><span class="t">📜 Folie: '+esc(q.slide.title||q.slide.text||'(leer)')+'</span><button class="s" data-delf="'+ci+':'+s+':'+i+'" title="Folie entfernen">✕</button></div>';
+ return h+'<div class="it'+(on?' on':'')+'" data-sel="'+ci+':'+s+':'+i+'"><span class="'+(done(q)?'':'todo')+'">●</span><span class="t">'+(i+1)+'. '+esc(q.text||'(leer)')+'</span>'+(q.slide?'':'<button class="s slb" data-addf="'+ci+':'+s+':'+i+'" title="Folie / Erklärseite davor einfügen">📜+</button>')+'<button class="s" data-mv="'+ci+':'+s+':'+i+':-1">↑</button><button class="s" data-mv="'+ci+':'+s+':'+i+':1">↓</button><button class="s" data-del="'+ci+':'+s+':'+i+'">✕</button></div>';
 }
 
 function field(l,h){return '<label>'+l+'</label>'+h}
+function slideEd(){
+ var q=cur(),f=q.slide,h='<div style="display:flex;gap:8px;align-items:center"><b>📜 Folie / Erklärseite</b><span class="tag">wird vor „'+esc(q.text||'(Frage)')+'“ gezeigt – weiter per Klick</span></div>';
+ h+=field('Überschrift','<input data-sk="title" value="'+esc(f.title||'')+'" placeholder="z. B. ⭐ Spezialrunde: Lieder raten">');
+ h+=field('Text (Zeilenumbrüche bleiben erhalten)','<textarea data-sk="text" style="font-family:inherit;font-size:15px;min-height:120px" placeholder="z. B. Ihr hört gleich 3 Lieder rückwärts. Pro richtig erkanntem Lied gibt es Punkte …">'+esc(f.text||'')+'</textarea>');
+ h+=field('Bild (optional)','<input type="file" accept="image/*" id="fsimg">'+msel('ssimg',f.image,'img')+'<div class="note">Aktuell: '+esc(fname(f.image))+(f.image?' <button class="s" id="rmsimg">Bild entfernen</button>':'')+'</div>');
+ h+='<div class="note" style="margin-top:12px">Am Handy steht währenddessen „Schau auf den Beamer“ mit der Überschrift.</div>';
+ $('ed').innerHTML=h;pv();
+}
 function editor(){
+ if(sel.f&&cur().slide)return slideEd();sel.f=0;
  normRev(cur());
  if(anim){cancelAnimationFrame(anim);anim=0}
  var q=cur(),c=D.categories[sel.c],h='';
@@ -176,10 +194,12 @@ function editor(){
   h+=field('Antwort testen (Fuzzy-Match)','<input id="tst" placeholder="Tippfehler ausprobieren …"><div id="res"></div>');
  }
  h+=field('💡 Funfact bei der Auflösung (optional – erscheint auf Beamer &amp; Handys)','<textarea data-k="fact" placeholder="z. B. Der höchste Weihnachtsbaum der Welt war 67 m hoch." style="font-family:inherit;font-size:15px;min-height:60px">'+esc(q.fact||'')+'</textarea>');
+ h+=field('⏳ Vorlesezeit: Antworten erscheinen auf Beamer &amp; Handy …','<select data-k="delay" style="max-width:420px">'+[['','nach 5 Sekunden (Standard)'],['0','sofort mit der Frage'],['3','nach 3 Sekunden'],['8','nach 8 Sekunden'],['10','nach 10 Sekunden'],['15','nach 15 Sekunden'],['manual','erst per Klick / Leertaste auf dem Beamer']].map(function(o){return '<option value="'+o[0]+'"'+(String(q.delay==null?'':q.delay)===o[0]?' selected':'')+'>'+o[1]+'</option>'}).join('')+'</select><div class="note">Die Antwortzeit (unten) startet erst, wenn die Antworten erscheinen. Ein Bild im Modus „Bild zeigen“ ist schon während der Vorlesezeit zu sehen.</div>');
  h+=field('Zeit nur für diese Frage (Sekunden)','<input type="number" data-k="timeLimit" value="'+(q.timeLimit||20)+'" style="max-width:120px">');
  $('ed').innerHTML=h;
  if(q.reveal==='steps')stp();
  if(IMGREV.indexOf(q.reveal)>=0)picInit();
+ pv();
  if(snd(q)==='audio')trk(q).forEach(function(t,i){if(!t.src)return;var x=new Audio(t.src);x.onloadedmetadata=function(){var e=document.getElementById('d'+i);if(e)e.textContent='(Länge: '+x.duration.toFixed(1)+' s)'}});
 }
 function stp(){var e=$('stp');if(e)e.innerHTML=(cur().steps||[]).map(function(s){return '<span>'+esc(s)+'</span>'}).join('')}
@@ -210,6 +230,7 @@ function sndSel(q){return field('🔊 Ton / Musik während der Frage (läuft par
 function revUI(q){
  var R=Object.keys(REV),r=R.indexOf(q.reveal||'none')<0?'none':(q.reveal||'none'),h='';
  h+=field('🖼️ Darstellung auf dem Beamer','<select data-k="reveal">'+R.map(function(k){return '<option value="'+k+'"'+(r===k?' selected':'')+'>'+REV[k]+'</option>'}).join('')+'</select>');
+ if(r!=='none'&&q.type!=='text')h+=field('Anordnung auf dem Beamer','<select data-k="layout">'+[['','unter den Antworten (Standard)'],['left','groß links, Antworten rechts'],['right','groß rechts, Antworten links']].map(function(o){return '<option value="'+o[0]+'"'+((q.layout||'')===o[0]?' selected':'')+'>'+o[1]+'</option>'}).join('')+'</select><div class="note">Wie es aussieht, siehst du in der Beamer-Vorschau.</div>');
  if(IMGREV.indexOf(r)<0)return h;
  h+='<label>Bild</label><div class="drop" id="drop">'+(q.image?'<img src="'+esc(q.image)+'" alt="">':'<div class="ph">🖼️</div>')
   +'<div><b>Bild hierher ziehen</b>, mit <b>Strg+V</b> einfügen oder <button id="pick">Datei wählen …</button><input type="file" accept="image/*" id="fimg" style="display:none">'
@@ -288,7 +309,19 @@ document.addEventListener('paste',function(e){var q;try{q=cur()}catch(x){return}
 /* Fuzzy */
 function norm(s){return String(s).toLowerCase().replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/ß/g,'ss').replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim().replace(/^(der|die|das|ein|eine|the) /,'')}
 function lev(a,b){var m=[],i,j;for(i=0;i<=a.length;i++)m[i]=[i];for(j=1;j<=b.length;j++)m[0][j]=j;for(i=1;i<=a.length;i++)for(j=1;j<=b.length;j++)m[i][j]=Math.min(m[i-1][j]+1,m[i][j-1]+1,m[i-1][j-1]+(a[i-1]===b[j-1]?0:1));return m[a.length][b.length]}
-function match(inp,answers){var a=norm(inp);return answers.some(function(r){var b=norm(r);return b&&lev(a,b)<=Math.floor(b.length/5)})}
+/* gleiche Logik wie host.html: ganzer Text, ohne Leerzeichen, Wort für Wort (lautähnlich) */
+var STOP={};'der die das den dem des ein eine einen einem einer und in im am an auf zu zum zur von vom mit fuer the a an of and to ist'.split(' ').forEach(function(w){STOP[w]=1});
+function phon(w){return w.replace(/sch/g,'s').replace(/ph/g,'f').replace(/th/g,'t').replace(/ck/g,'k').replace(/qu/g,'kw').replace(/c(?=[eiy])/g,'s').replace(/c/g,'k').replace(/y/g,'i').replace(/ie/g,'i').replace(/[ae]i/g,'ai').replace(/eu|oi/g,'oi').replace(/z/g,'s').replace(/v/g,'f').replace(/w/g,'v').replace(/dt/g,'t').replace(/([aeiou])h(?![aeiou])/g,'$1').replace(/(.)\1+/g,'$1')}
+function tol(n){return n<=2?0:n<=4?1:n<=7?2:3}
+function match1(x,r){var a=norm(x),b=norm(r);if(!a||!b)return false;
+ if(lev(a,b)<=Math.floor(b.length/5))return true;
+ var A=a.split(' ').map(phon),B=b.split(' ').map(phon),ca=A.join(''),cb=B.join('');
+ if(lev(ca,cb)<=Math.max(1,Math.floor(cb.length/4)))return true;
+ var imp=function(L){var f=L.filter(function(w){return !STOP[w]});return f.length?f:L},bt=imp(B),it=imp(A),used={},hit=0,n=0,hi=0;
+ bt.forEach(function(w){for(var k=0;k<it.length;k++){if(!used[k]&&lev(it[k],w)<=tol(Math.max(it[k].length,w.length))){used[k]=1;hit+=w.length;hi+=it[k].length;n++;return}}});
+ var tb=bt.join('').length,ti=it.join('').length;
+ return tb>0&&hit/tb>=.65&&hi/ti>=.65&&n>=Math.ceil(bt.length*.6)}
+function match(inp,answers){return answers.some(function(r){return match1(inp,r)})}
 
 /* Medien: Upload in Supabase Storage (Bucket quiz-media) + Auswahl vorhandener Dateien */
 var BUCKET='quiz-media',media=[];
@@ -326,14 +359,17 @@ function play(q){
 /* Events */
 $('tree').addEventListener('click',function(e){
  var t=e.target,a;
- if(a=t.dataset.add){a=a.split(':');var c=D.categories[+a[0]],q=a[1]==='questions'?mc('',['','','',''],0):tx('',[],'none');c[a[1]].push(q);sel={c:+a[0],s:a[1],i:c[a[1]].length-1}}
+ if(a=t.dataset.addf){a=a.split(':');D.categories[+a[0]][a[1]][+a[2]].slide={title:a[1]==='specials'?'⭐ Spezialrunde':'',text:''};sel={c:+a[0],s:a[1],i:+a[2],f:1}}
+ else if(a=t.dataset.delf){a=a.split(':');if(!confirm('Folie wirklich entfernen?'))return;delete D.categories[+a[0]][a[1]][+a[2]].slide;sel={c:+a[0],s:a[1],i:+a[2]}}
+ else if(a=t.dataset.add){a=a.split(':');var c=D.categories[+a[0]],q=a[1]==='questions'?mc('',['','','',''],0):tx('',[],'none');c[a[1]].push(q);sel={c:+a[0],s:a[1],i:c[a[1]].length-1}}
  else if(a=t.dataset.del){a=a.split(':');if(!confirm('Frage wirklich löschen?'))return;var l=D.categories[+a[0]][a[1]];l.splice(+a[2],1);sel={c:+a[0],s:a[1],i:Math.max(0,Math.min(+a[2],l.length-1))};if(!l.length){l.push(mc('',['','','',''],0));sel.i=0}}
  else if(a=t.dataset.mv){a=a.split(':');var l2=D.categories[+a[0]][a[1]],i=+a[2],j=i+ +a[3];if(j<0||j>=l2.length)return;var x=l2[i];l2[i]=l2[j];l2[j]=x;sel={c:+a[0],s:a[1],i:j}}
- else{var r=t.closest('[data-sel]');if(!r)return;a=r.dataset.sel.split(':');sel={c:+a[0],s:a[1],i:+a[2]}}
+ else{var r=t.closest('[data-sel]');if(!r)return;a=r.dataset.sel.split(':');sel={c:+a[0],s:a[1],i:+a[2],f:a[3]==='f'?1:0}}
  save();tree();editor();
 });
 $('ed').addEventListener('input',function(e){
  var t=e.target,q=cur(),c=D.categories[sel.c];
+ if(t.dataset.sk){q.slide[t.dataset.sk]=t.value;save();tree();pv();return}
  if(t.dataset.cat){c[t.dataset.cat]=t.value;tree();}
  else if(t.dataset.k){var k=t.dataset.k;
   if(k==='type'){
@@ -358,7 +394,7 @@ $('ed').addEventListener('input',function(e){
  else if(t.dataset.list){q[t.dataset.list]=t.value.split('\n').map(function(s){return s.trim()}).filter(Boolean);if(t.dataset.list==='steps')stp();tree()}
  else if(t.id==='tst'){var ok=q.type==='estimate'?null:match(t.value,q.nslots>1?[].concat.apply([],q.slots||[]):(q.answers||[]));$('res').textContent=!t.value?'':ok?'✅ Richtig (Tippfehler verziehen)':'❌ Falsch';}
  else if(t.id==='pg'){pvStop();prev()}
- save();
+ save();if(t.id!=='pg'&&t.id!=='tst')pv();
 });
 $('ed').addEventListener('change',function(e){
  var t=e.target,q=cur(),f=t.files&&t.files[0];
@@ -366,8 +402,11 @@ $('ed').addEventListener('change',function(e){
  if(t.value&&t.dataset.str!=null){trk(q)[+t.dataset.str].src=t.value;save();tree();editor()}
  if(f&&t.id==='fimg')setImg(f);
  if(t.value&&t.id==='simg'){q.image=t.value;save();tree();editor()}
+ if(f&&t.id==='fsimg')upl(f,function(u){q.slide.image=u;save();tree();editor()});
+ if(t.value&&t.id==='ssimg'){q.slide.image=t.value;save();tree();editor()}
 });
 $('ed').addEventListener('click',function(e){var q=cur();
+ if(e.target.id==='rmsimg'){delete q.slide.image;save();editor();return}
  if(e.target.id==='addopt'&&q.options.length<6){q.options.push('');save();tree();editor();return}
  if(e.target.dataset.rmopt!=null&&q.options.length>2){var ri=+e.target.dataset.rmopt;q.options.splice(ri,1);
   var C=cors({options:q.options.concat(['']),correct:q.correct}).filter(function(x){return x!==ri}).map(function(x){return x>ri?x-1:x});if(!C.length)C=[0];
@@ -381,13 +420,23 @@ $('ed').addEventListener('click',function(e){var q=cur();
  if(e.target.id==='pl')play(cur());if(e.target.id==='st')stop()});
 $('jbtn').onclick=function(){var s=$('js').style;s.display=s.display==='none'?'block':'none';$('jt').value=JSON.stringify(D,null,1)};
 $('jgen').onclick=function(){$('jt').value=JSON.stringify(D,null,1);$('jt').select()};
-$('jload').onclick=function(){try{var n=JSON.parse($('jt').value);if(!n.categories)throw 0;D=n;sel={c:0,s:'questions',i:0};save();tree();editor()}catch(x){alert('Das JSON ist ungültig.')}};
+$('jload').onclick=function(){try{var n=JSON.parse($('jt').value);if(!n.categories)throw 0;D=n;sel={c:0,s:'questions',i:0};save();tree();editor();scm()}catch(x){alert('Das JSON ist ungültig.')}};
 $('jreset').onclick=function(){if(confirm('Alles auf die Standardfragen zurücksetzen?')){D=std();sel={c:0,s:'questions',i:0};save();tree();editor();$('jt').value=''}};
-tree();editor();
+/* Beamer-Vorschau (host.html#preview im iframe) */
+var pvT,pvMode={};
+function pv(run,show){clearTimeout(pvT);pvT=setTimeout(function(){var f=$('pvf');if(!f||!f.contentWindow)return;var q=cur(),c=D.categories[sel.c],m;
+ if(sel.f&&q.slide)m={slide:q.slide};else m={q:q,tag:sel.s==='specials'?'⭐ Spezialfrage – Runde '+(sel.i+1)+' von '+c.specials.length:c.icon+' '+c.name+' – Frage',run:!!run};
+ if(show)m.q=Object.assign({},q,{delay:'0'});
+ try{f.contentWindow.postMessage(JSON.parse(JSON.stringify(m)),'*')}catch(x){}},run||show?0:300)}
+addEventListener('message',function(e){if(e.data&&e.data.pvReady)pv(false,true)});
+$('pvrun').onclick=function(){pv(true)};$('pvst').onclick=function(){pv(false,true)};
+function scm(){$('scm').value=D.scoring==='time'?'time':'rank'}
+$('scm').onchange=function(){D.scoring=this.value;save()};
+tree();editor();scm();
 document.getElementById('sbtn').onclick=push;
 loadMedia(function(){editor()});
 if(sb)sb.from('quiz').select('data').eq('id',1).maybeSingle().then(function(r){
- if(r.data&&r.data.data&&r.data.data.categories){D=r.data.data;sel={c:0,s:'questions',i:0};tree();editor();st('☁ Aus Supabase geladen')}
+ if(r.data&&r.data.data&&r.data.data.categories){D=r.data.data;sel={c:0,s:'questions',i:0};tree();editor();scm();st('☁ Aus Supabase geladen')}
  else if(r.error)st('⚠ Supabase: '+r.error.message);
  else{st('Noch nichts in Supabase – Standardfragen werden gespeichert …');push()}});
 })();

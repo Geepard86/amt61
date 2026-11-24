@@ -7,6 +7,7 @@
 <script src="fx.js"></script>
 <script src="music.js"></script>
 <script>
+const PREV=location.hash==='#preview';
 const sb=supabase.createClient(CFG.url,CFG.key,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}}),V=document.getElementById('v'),$=i=>document.getElementById(i);
 const fit=()=>document.getElementById('st').style.transform='translate(-50%,-50%) scale('+Math.min(innerWidth/1920,innerHeight/1080)+')';
 addEventListener('resize',fit);fit();snow(document.getElementById('fx'),45);
@@ -15,7 +16,7 @@ let ti=+localStorage.th61||0;const TH=['th-a','th-d'];
 const applyTh=()=>{document.getElementById('st').className=TH[ti]};applyTh();
 const switchTh=()=>{ti=1-ti;localStorage.th61=ti;applyTh();toast('🎨 Theme: '+['Pergament','Gezeichnetes Gebäude'][ti]);if(document.querySelector('#v .door')||$('fac'))calendar()};
 let tt;const toast=m=>{const e=document.getElementById('toast');e.textContent=m;e.classList.add('on');clearTimeout(tt);tt=setTimeout(()=>e.classList.remove('on'),1800)};
-addEventListener('click',()=>Music.start(),{once:true});
+if(!PREV)addEventListener('click',()=>Music.start(),{once:true});
 addEventListener('keydown',e=>{const k=e.key.toLowerCase();
  if(k==='t')switchTh();
  else if(k==='m')toast(Music.toggle()?'🔇 Musik aus':'🔊 Musik an');
@@ -38,10 +39,21 @@ const players=async()=>(await sb.from('players').select('*').order('score',{asce
 const EM=['🎅','🤶','🦌','⛄','🎄','🎁','🔔','🍪','🧝','🕯️','🧦','🥛','❄️','🍷','🎶','🛷','🧣','🥜','🍊','🕊️','👼','🏠','🍬','⭐'];
 const ckey=(c,t,i)=>c+(t==='s'?'-s':'-q'+i),mark=k=>{done[k]=1;localStorage.d61=JSON.stringify(done)};
 
-/* Fuzzy-Antwortvergleich */
+/* Fuzzy-Antwortvergleich: ganzer Text, ohne Leerzeichen und Wort für Wort (lautähnlich) */
 const norm=s=>String(s).toLowerCase().replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/ß/g,'ss').replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim().replace(/^(der|die|das|ein|eine|the) /,'');
 function lev(a,b){const m=[];for(let i=0;i<=a.length;i++)m[i]=[i];for(let j=1;j<=b.length;j++)m[0][j]=j;for(let i=1;i<=a.length;i++)for(let j=1;j<=b.length;j++)m[i][j]=Math.min(m[i-1][j]+1,m[i][j-1]+1,m[i-1][j-1]+(a[i-1]===b[j-1]?0:1));return m[a.length][b.length]}
-const match=(x,L)=>L.some(r=>{const a=norm(x),b=norm(r);return b&&lev(a,b)<=Math.floor(b.length/5)});
+const STOP=new Set('der die das den dem des ein eine einen einem einer und in im am an auf zu zum zur von vom mit fuer the a an of and to ist'.split(' '));
+const phon=w=>w.replace(/sch/g,'s').replace(/ph/g,'f').replace(/th/g,'t').replace(/ck/g,'k').replace(/qu/g,'kw').replace(/c(?=[eiy])/g,'s').replace(/c/g,'k').replace(/y/g,'i').replace(/ie/g,'i').replace(/[ae]i/g,'ai').replace(/eu|oi/g,'oi').replace(/z/g,'s').replace(/v/g,'f').replace(/w/g,'v').replace(/dt/g,'t').replace(/([aeiou])h(?![aeiou])/g,'$1').replace(/(.)\1+/g,'$1');
+const tol=n=>n<=2?0:n<=4?1:n<=7?2:3;
+function match1(x,r){const a=norm(x),b=norm(r);if(!a||!b)return false;
+ if(lev(a,b)<=Math.floor(b.length/5))return true;
+ const A=a.split(' ').map(phon),B=b.split(' ').map(phon),ca=A.join(''),cb=B.join('');
+ if(lev(ca,cb)<=Math.max(1,Math.floor(cb.length/4)))return true;
+ const imp=L=>{const f=L.filter(w=>!STOP.has(w));return f.length?f:L},bt=imp(B),it=imp(A),used=new Set();let hit=0,n=0;
+ bt.forEach(w=>{const i=it.findIndex((v,k)=>!used.has(k)&&lev(v,w)<=tol(Math.max(v.length,w.length)));if(i>=0){used.add(i);hit+=w.length;n++}});
+ const tb=bt.join('').length,ti=it.join('').length,hi=[...used].reduce((s,k)=>s+it[k].length,0);
+ return tb>0&&hit/tb>=.65&&hi/ti>=.65&&n>=Math.ceil(bt.length*.6)}
+const match=(x,L)=>L.some(r=>match1(x,r));
 
 /* Punkte: 1000 für den/die Beste/n, linear bis 100; Gleichstand = gleiche Punkte */
 function score(q,ans,t0){
@@ -52,10 +64,12 @@ function score(q,ans,t0){
    (q.slots||[]).slice(0,NS).forEach(sl=>{const i=g.findIndex((x,gi)=>!used.has(gi)&&x&&match(x,sl));if(i>=0){used.add(i);n++}});a.n=n});
   ok=l.filter(a=>a.n>0);key=a=>(NS-a.n)*1e7+a.ms}
  else if(q.type==='text'){ok=l.filter(a=>match(a.value,q.answers||[]));key=a=>a.ms}
- else{ok=l.map(a=>({...a,d:Math.abs(parseFloat(String(a.value).replace(',','.'))-q.answer)})).filter(a=>!isNaN(a.d));key=a=>a.d}
+ else{ok=l.map(a=>{const g=parseFloat(String(a.value).replace(',','.'));return{...a,g,d:Math.abs(g-q.answer)}}).filter(a=>!isNaN(a.d));key=a=>a.d}
  ok.sort((a,b)=>key(a)-key(b));
  const out={},N=ok.length;let r=0;
  ok.forEach((a,i)=>{if(i&&key(a)!==key(ok[i-1]))r=i;out[a.player_id]=N<2?1000:Math.round(1000-900*r/(N-1))});
+ /* Zeit-Modus: 1000 Punkte bei sofortiger Antwort, linear bis 100 Punkte am Ende der Fragezeit */
+ if(Q&&Q.scoring==='time'&&q.type!=='estimate'){const T=(q.timeLimit||20)*1000;ok.forEach(a=>{out[a.player_id]=Math.round(100+900*Math.min(1,Math.max(0,1-a.ms/T)))})}
  if(q.type==='text'&&q.nslots>1)ok.forEach(a=>{out[a.player_id]=Math.round(out[a.player_id]*a.n/q.nslots)});
  if(q.type==='mc'){const K=cors(q).length,pp=parseFloat(q.ppc);ok.forEach(a=>{out[a.player_id]=pp>=0&&q.ppc!==''&&q.ppc!=null?Math.round(pp*a.n):Math.round(out[a.player_id]*a.n/K)})}
  return{out,ok};
@@ -78,9 +92,10 @@ function synth(q){
 }
 
 /* Medien auf dem Beamer: gibt eine Stopp-Funktion zurück */
-function media(q,secs){
+function media(q,secs,only){
  const md=$('md'),T=[],AU=[];let raf;
- if(q.reveal==='steps'){const s=q.steps||[];s.forEach((x,i)=>T.push(setTimeout(()=>md.insertAdjacentHTML('beforeend',/^[^\w]{1,8}$/u.test(x)?'<span>'+esc(x)+'</span>':'<div>'+esc(x)+'</div>'),i*secs*600/Math.max(1,s.length))))}
+ if(only==='s'){}
+ else if(q.reveal==='steps'){const s=q.steps||[];s.forEach((x,i)=>T.push(setTimeout(()=>md.insertAdjacentHTML('beforeend',/^[^\w]{1,8}$/u.test(x)?'<span>'+esc(x)+'</span>':'<div>'+esc(x)+'</div>'),i*secs*600/Math.max(1,s.length))))}
  else if(['pixelate','zoom','image'].includes(q.reveal)&&q.image){
   md.classList.add('pic');const im=new Image(),t0=Date.now();
   const fit=a=>{let w=md.clientWidth,h=w/a;if(h>md.clientHeight){h=md.clientHeight;w=h*a}return{w:Math.round(w),h:Math.round(h)}};
@@ -98,7 +113,8 @@ function media(q,secs){
    md._full=()=>{cancelAnimationFrame(raf);if(W)draw(1)};
   }
  }
- if(snd(q)==='audio'&&(q.tracks&&q.tracks.some(t=>t.src)||q.audio)){
+ if(only==='v'){}
+ else if(snd(q)==='audio'&&(q.tracks&&q.tracks.some(t=>t.src)||q.audio)){
   const TR=(q.tracks&&q.tracks.length?q.tracks:[q.audio&&{src:q.audio,s:q.a1s,e:q.a1e,v:q.a1v},q.audio2&&{src:q.audio2,s:q.a2s,e:q.a2e,v:q.a2v,d:q.a2d}]).filter(t=>t&&t.src);
   const mix=()=>{T.forEach(clearTimeout);T.length=0;AU.forEach(x=>x.pause());AU.length=0;
    TR.forEach(t=>{const x=new Audio(t.src),nm=(k,d)=>{const v=t[k];return v===''||v==null||isNaN(+v)?d:+v},s=nm('s',0),e=nm('e',null),dl=nm('d',0);
@@ -109,16 +125,40 @@ function media(q,secs){
  return()=>{T.forEach(clearTimeout);cancelAnimationFrame(raf);if(md._full)md._full();AU.forEach(x=>x.pause());stopAudio()};
 }
 
+/* Folie / Erklärseite */
+const slideHTML=s=>'<div class="slide">'+(s.title?'<h2>'+esc(s.title)+'</h2>':'')+(s.text?'<div class="stx">'+esc(s.text).replace(/\n/g,'<br>')+'</div>':'')+(s.image?'<img class="simg" alt="" src="'+String(s.image).replace(/"/g,'&quot;')+'">':'')+'</div>';
+const hasSlide=s=>s&&(s.title||s.text||s.image);
+async function slide(s){Music.mode('menu');clearFac();corner(false);await set('calendar',{slide:1,title:s.title||''});
+ V.innerHTML=slideHTML(s)+'<button class="btn" id="nx">Weiter ➜</button>';await click('nx')}
+
+/* Fragebildschirm (auch für die Admin-Vorschau) */
+const dly=q=>q.delay==='manual'?-1:(q.delay===''||q.delay==null||isNaN(+q.delay))?5:+q.delay;
+function ansHTML(q){return q.type==='mc'?(cors(q).length>1?'<div style="font-size:34px;color:#f5c542;margin-top:6px">Wähle '+cors(q).length+' Antworten!</div>':'')+'<div class="opts'+((q.options||[]).length>4?' o6':'')+'">'+(q.options||[]).map((o,i)=>'<div class="opt" style="background:'+COL[i]+'">'+SYM[i]+'  '+esc(o)+'</div>').join('')+'</div>'
+ :q.type==='estimate'?'<div style="font-size:50px;margin-top:30px">Schätze! '+(q.unit?'(in '+esc(q.unit)+')':'')+'</div>':''}
+function qScreen(q,tag){
+ const a=ansHTML(q),side=(q.layout==='left'||q.layout==='right')&&a&&q.reveal&&q.reveal!=='none';
+ return '<div style="font-size:34px;color:#f5c542">'+esc(tag)+'</div><div class="q">'+esc(q.text)+'</div><div class="bar"><i id="bar" style="width:100%"></i></div>'
+  +(side?'<div class="qrow '+q.layout+'"><div id="md"></div><div class="ans later">'+a+'</div></div>':'<div class="ans later">'+a+'</div><div id="md"></div>')
+  +'<div style="display:flex;align-items:center;margin-top:auto"><span id="cnt" style="font-size:36px"></span><span id="sndb" style="margin-left:auto"></span><button class="btn" id="skip" style="margin-left:24px">Auflösen ⏭</button></div>';
+}
+/* Vorlesezeit: Frage steht, Antworten kommen nach n Sekunden oder per Klick/Leertaste */
+function readTime(D){return new Promise(res=>{const b=$('skip');b.textContent='Antworten zeigen ⏩';let iv;
+ const go=()=>{clearInterval(iv);removeEventListener('keydown',kd);b.textContent='Auflösen ⏭';$('cnt').textContent='';res()},kd=e=>{if(e.key===' '||e.key==='Enter'){e.preventDefault();go()}};
+ b.onclick=go;addEventListener('keydown',kd);
+ if(D>0){let n=D;const t=()=>$('cnt').textContent='Antworten in '+n+' s …';t();iv=setInterval(()=>{if(--n<=0)go();else t()},1000)}else $('cnt').textContent='Frage vorlesen – dann „Antworten zeigen“';})}
+
 /* Eine Frage durchspielen */
 async function play(q,k,tag){
- const secs=q.timeLimit||20,np=(await players()).length,off=snd(q)!=='none';
+ if(hasSlide(q.slide))await slide(q.slide);
+ const secs=q.timeLimit||20,np=(await players()).length,off=snd(q)!=='none',D=dly(q),base={type:q.type,text:q.text,unit:q.unit};
  Music.mode(off?'off':'quiz',off?.8:3);clearFac();corner(false);
- const t0=new Date(await set('question',{qkey:k,type:q.type,text:q.text,options:q.options,pick:q.type==='mc'?cors(q).length:0,unit:q.unit,slots:q.nslots>1?q.nslots:0,secs},secs));
- V.innerHTML='<div style="font-size:34px;color:#f5c542">'+esc(tag)+'</div><div class="q">'+esc(q.text)+'</div><div class="bar"><i id="bar"></i></div>'
-  +(q.type==='mc'?(cors(q).length>1?'<div style="font-size:34px;color:#f5c542;margin-top:6px">Wähle '+cors(q).length+' Antworten!</div>':'')+'<div class="opts'+(q.options.length>4?' o6':'')+'">'+q.options.map((o,i)=>'<div class="opt" style="background:'+COL[i]+'">'+SYM[i]+'  '+esc(o)+'</div>').join('')+'</div>':q.type==='estimate'?'<div style="font-size:50px;margin-top:30px">Schätze! '+(q.unit?'(in '+esc(q.unit)+')':'')+'</div>':'')
-  +'<div id="md"></div><div style="display:flex;align-items:center;margin-top:auto"><span id="cnt" style="font-size:36px"></span><span id="sndb" style="margin-left:auto"></span><button class="btn" id="skip" style="margin-left:24px">Auflösen ⏭</button></div>';
+ V.innerHTML=qScreen(q,tag);
+ const early=D!==0&&q.reveal==='image';let stopV=()=>{};
+ if(D!==0){await set('question',{...base,qkey:k+'~pre',wait:1,secs},1);if(early)stopV=media(q,secs,'v');await readTime(D)}
+ V.querySelector('.ans').classList.remove('later');
+ const t0=new Date(await set('question',{...base,qkey:k,options:q.options,pick:q.type==='mc'?cors(q).length:0,slots:q.nslots>1?q.nslots:0,secs,at:Date.now()},secs));
  if(off)await wait(900);
- const stop=media(q,secs),end=Date.now()+secs*1000;let tick=0,iv;
+ const stopM=media(q,secs,early?'s':undefined),stop=()=>{stopV();stopM()},end=Date.now()+secs*1000;let tick=0,iv;
  await new Promise(res=>{$('skip').onclick=res;iv=setInterval(async()=>{
   const left=Math.max(0,(end-Date.now())/1000);$('bar').style.width=left/secs*100+'%';$('bar').classList.toggle('hot',left<5);
   if(left<=0)return res();
@@ -127,7 +167,8 @@ async function play(q,k,tag){
  const ans=(await sb.from('answers').select('player_id,value,created_at').eq('qkey',k)).data||[];
  const {out,ok}=score(q,ans,t0);
  await rpc('host_scores',{deltas:Object.entries(out).map(([id,p])=>({id,p}))});
- Music.mode('menu',3.5);const fact=String(q.fact||'').trim();await set('reveal',{qkey:k,out,fact});if(ok.length)burst($('st'));
+ Music.mode('menu',3.5);const fact=String(q.fact||'').trim(),isE=q.type==='estimate';
+ await set('reveal',{qkey:k,out,fact,unit:q.unit||'',est:isE?Object.fromEntries(ok.map(a=>[a.player_id,[a.g,a.d]])):null});if(ok.length)burst($('st'));
  const P=Object.fromEntries((await players()).map(p=>[p.id,p]));
  let wrong=[];
  if(q.type==='text'&&q.showWrong!=='no'){const seen=new Set(),all=q.nslots>1?[].concat(...(q.slots||[])):(q.answers||[]);
@@ -136,12 +177,14 @@ async function play(q,k,tag){
  const right=q.type==='text'&&q.nslots>1?(q.slots||[]).slice(0,q.nslots).map(s=>s[0]).join('  ·  '):q.type==='mc'?cors(q).map(i=>q.options[i]).join('  ·  '):q.type==='estimate'?q.answer+(q.unit?' '+q.unit:''):(q.answers||[])[0];
  const pic=['image','pixelate','zoom'].includes(q.reveal)&&q.image;
  V.innerHTML=(pic?'<div style="display:flex;gap:40px;align-items:flex-start;min-height:0"><div style="flex:1;min-width:0">':'')+'<div class="q">'+esc(q.text)+'</div><h2 style="color:#9be7a8;margin-top:30px">✅ '+esc(right)+'</h2>'
-  +'<div style="font-size:44px;margin-top:10px">'+(ok.length?'Schnellste/Beste:':'Niemand hatte es richtig 😅')+'</div>'
-  +ok.slice(0,wrong.length||fact?3:5).map(a=>'<div class="rk" style="font-size:44px;padding:8px 26px;margin:6px 0"><span>'+(P[a.player_id]?P[a.player_id].icon+' '+esc(P[a.player_id].name):'?')+'</span><em>+'+out[a.player_id]+'</em></div>').join('')
+  +'<div style="font-size:44px;margin-top:10px">'+(ok.length?(isE?'Am nächsten dran:':'Schnellste/Beste:'):'Niemand hatte es richtig 😅')+'</div>'
+  +ok.slice(0,isE?(fact?5:8):(wrong.length||fact?3:5)).map(a=>'<div class="rk" style="font-size:'+(isE?36:44)+'px;padding:'+(isE?6:8)+'px 26px;margin:'+(isE?4:6)+'px 0"><span>'+(P[a.player_id]?P[a.player_id].icon+' '+esc(P[a.player_id].name):'?')
+   +(isE?'<small class="dv">'+fmtN(a.g)+(q.unit?' '+esc(q.unit):'')+' · '+(a.d===0?'🎯 genau getroffen!':fmtN(a.d)+(q.unit?' '+esc(q.unit):'')+' daneben')+'</small>':'')+'</span><em>+'+out[a.player_id]+'</em></div>').join('')
   +(wrong.length?'<div style="font-size:34px;margin-top:16px;color:#d8c9a8">Das haben andere getippt:</div><div id="wr">'+wrong.map(w=>'<span>'+esc(w)+'</span>').join('')+'</div>':'')+(fact?'<div class="fact"><b>💡 Wusstest du schon?</b>'+esc(fact)+'</div>':'')+(pic?'</div><img class="rvimg" alt="" src="'+String(q.image).replace(/"/g,'&quot;').replace(/</g,'&lt;')+'"></div>':'')+'<button class="btn" id="nx">Weiter ➜</button>';
  await click('nx');
 }
 function md_full(){}
+const fmtN=n=>(+n).toLocaleString('de-DE',{maximumFractionDigits:2});
 
 /* Ranking */
 async function ranking(final){
@@ -268,7 +311,19 @@ async function lobby(){
  await click('go');clearInterval(iv);calendar();
 }
 
-(async()=>{
+/* Vorschau-Modus für den Admin (host.html#preview in einem iframe) */
+if(PREV){
+ document.body.classList.add('pv');let run=0,stopP=()=>{};
+ addEventListener('message',async e=>{const m=e.data||{};if(!m.q&&!m.slide)return;const my=++run;stopP();stopP=()=>{};
+  if(m.slide){V.innerHTML=slideHTML(m.slide)+'<button class="btn">Weiter ➜</button>';return}
+  const q=m.q,secs=q.timeLimit||20,D=dly(q);V.innerHTML=qScreen(q,m.tag||'Vorschau');
+  if(m.run&&D!==0){if(q.reveal==='image')stopP=media(q,secs,'v');$('skip').textContent='Antworten zeigen ⏩';const n=D>0?D:3;for(let i=n;i>0;i--){if(my!==run)return;$('cnt').textContent=D>0?'Antworten in '+i+' s …':'(manuell – hier nach 3 s)';await wait(1000)}if(my!==run)return;$('cnt').textContent='';$('skip').textContent='Auflösen ⏭'}
+  if(my!==run)return;V.querySelector('.ans').classList.remove('later');
+  if(!(m.run&&D!==0&&q.reveal==='image'))stopP=media(q,secs,'v');
+  if(m.run){const end=Date.now()+secs*1000,iv=setInterval(()=>{const b=$('bar');if(my!==run||!b)return clearInterval(iv);const l=Math.max(0,(end-Date.now())/1000);b.style.width=l/secs*100+'%';if(l<=0)clearInterval(iv)},200)}
+ });
+ parent.postMessage({pvReady:1},'*');
+}else(async()=>{
  const say=t=>V.innerHTML='<h2>'+esc(t)+'</h2>';
  say('Lade Fragen …');
  if(typeof CFG==='undefined'||/DEIN-/.test(CFG.url+CFG.key))return say('config.js fehlt oder ist nicht ausgefüllt');

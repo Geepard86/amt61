@@ -10,7 +10,13 @@
 const sb=supabase.createClient(CFG.url,CFG.key,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}}),A=document.getElementById('app');
 const ICONS=['🎅','🤶','🦌','⛄','🎄','🎁','⭐','🔔','🍪','🧝','🕯️','🧦','🥛','❄️','🦃','🍷'];
 const COL=['#9b1c2c','#1f4e79','#a8741a','#2f6b3a','#5b2a86','#1d6b6b'],SYM=['▲','◆','●','■','★','♥'];
-let at,me=null,g={phase:'lobby',data:{}},icon='',sent={},tm;
+let at,me=null,g={phase:'lobby',data:{}},icon='',sent={},tm,rt=0;
+try{sent=JSON.parse(localStorage.getItem('sent61'))||{}}catch(e){}
+const markSent=k=>{sent[k]=Date.now();const ks=Object.keys(sent);if(ks.length>150)ks.sort((a,b)=>sent[a]-sent[b]).slice(0,ks.length-150).forEach(x=>delete sent[x]);try{localStorage.setItem('sent61',JSON.stringify(sent))}catch(e){}};
+/* Nach Bildschirmsperre / App-Wechsel immer frisch laden */
+let hid=0;
+document.addEventListener('visibilitychange',()=>{if(document.hidden)hid=Date.now();else if(hid&&Date.now()-hid>1500)location.reload()});
+addEventListener('pageshow',e=>{if(e.persisted)location.reload()});
 try{me=JSON.parse(localStorage.getItem('me61'))}catch(e){}
 const esc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
 snow(document.getElementById('fx'),22);
@@ -35,11 +41,15 @@ async function place(){
 }
 
 async function render(){
- clearInterval(tm);clearTimeout(at);
+ clearInterval(tm);clearTimeout(at);const tok=++rt;
  if(!me)return joinView();
  const d=g.data||{};
+ if(g.phase==='question'&&d.wait){put('<div class="q wq">'+esc(d.text)+'</div><div class="big pulse">👀</div><p>Hör gut zu –<br>gleich kommen die Antworten …</p>');return}
  if(g.phase==='question'){
+  if(!sent[d.qkey]){const r=await sb.from('answers').select('id').eq('player_id',me.id).eq('qkey',d.qkey).limit(1);if(tok!==rt)return;if(r.data&&r.data.length)markSent(d.qkey)}
   if(sent[d.qkey])return put('<div class="big">✅</div><p>Antwort gesendet!<br>Warte auf die anderen …</p>');
+  const secs=d.secs||20,t0=d.at&&Math.abs(Date.now()-d.at)<secs*1000+120000?Math.min(d.at,Date.now()):Date.now();
+  if(Date.now()-t0>secs*1000-500)return put('<div class="big">⌛</div><p>Die Zeit für diese Frage ist abgelaufen.<br>Gleich geht’s weiter!</p>');
   let h='<div class="bar"><i id="b"></i></div><div class="q" id="qq">'+esc(d.text)+'</div>';
   const PK=d.type==='mc'?Math.max(1,d.pick||1):0;
   if(d.type==='mc')h+=(PK>1?'<div class="pk" id="pk">Wähle '+PK+' Antworten (0/'+PK+')</div>':'')+'<div class="mc" style="grid-template-rows:repeat('+Math.ceil(d.options.length/2)+',minmax(0,1fr))">'+d.options.map((o,i)=>'<button data-a="'+i+'" style="background:'+COL[i]+'"><i>'+SYM[i]+'</i><span>'+esc(o)+'</span></button>').join('')+'</div>'+(PK>1?'<button class="go" id="s" disabled>Senden</button>':'');
@@ -47,33 +57,37 @@ async function render(){
   else h+='<input id="an" '+(d.type==='estimate'?'type="number" step="any" inputmode="decimal" placeholder="Deine Schätzung'+(d.unit?' ('+esc(d.unit)+')':'')+'"':'placeholder="Deine Antwort"')+' autocomplete="off"><button class="go" id="s">Senden</button>';
   put(h);A.className='qm';
   requestAnimationFrame(()=>{fitText(document.getElementById('qq'),12);A.querySelectorAll('.mc button').forEach(b=>fitText(b,10))});
-  const t0=Date.now(),secs=d.secs||20;
   tm=setInterval(()=>{const b=document.getElementById('b');if(b)b.style.width=Math.max(0,100-(Date.now()-t0)/secs/10)+'%'},100);
   const send=async(v,auto)=>{
-   sent[d.qkey]=1;put('<div class="big">⏳</div><p>Sende …</p>');
+   markSent(d.qkey);put('<div class="big">⏳</div><p>Sende …</p>');
    const r=await sb.from('answers').insert({player_id:me.id,qkey:d.qkey,value:String(v)});
    put(r.error?'<div class="big">⌛</div><p>Zu spät – die Zeit ist abgelaufen.</p>':'<div class="big">'+(auto?'⏰':'✅')+'</div><p>'+(auto?'Zeit abgelaufen – deine Antwort wurde automatisch gesendet!':'Antwort gesendet!')+'<br>Warte auf die anderen …</p>');
   };
   let chosen=[];
   const grab=()=>{if(d.type==='mc')return PK>1&&chosen.length?JSON.stringify(chosen):null;if(d.slots>1){const v=[...document.querySelectorAll('.an')].map(x=>x.value.trim());return v.some(Boolean)?JSON.stringify(v):null}const e=document.getElementById('an'),v=e?e.value.trim():'';return v||null};
-  at=setTimeout(()=>{if(sent[d.qkey])return;const v=grab();if(v!=null)send(v,true);else put('<div class="big">⌛</div><p>Zeit abgelaufen!</p>')},Math.max(500,(secs-1.2)*1000));
+  at=setTimeout(()=>{if(sent[d.qkey])return;const v=grab();if(v!=null)send(v,true);else put('<div class="big">⌛</div><p>Zeit abgelaufen!</p>')},Math.max(500,secs*1000-1200-(Date.now()-t0)));
   A.querySelectorAll('.mc button').forEach(b=>b.onclick=()=>{const a=+b.dataset.a;if(PK<2)return send(a);
    if(chosen.includes(a))chosen=chosen.filter(x=>x!==a);else if(chosen.length<PK)chosen.push(a);else return;
    b.classList.toggle('sel',chosen.includes(a));document.getElementById('pk').textContent='Wähle '+PK+' Antworten ('+chosen.length+'/'+PK+')';document.getElementById('s').disabled=chosen.length!==PK});
   const s=document.getElementById('s');if(s)s.onclick=()=>{if(d.type==='mc'){if(chosen.length===PK)send(JSON.stringify(chosen.slice().sort()));return}if(d.slots>1){const v=[...document.querySelectorAll('.an')].map(x=>x.value.trim());if(v.some(Boolean))send(JSON.stringify(v))}else{const v=document.getElementById('an').value.trim();if(v)send(v)}};
  }else if(g.phase==='reveal'){
-  const p=(d.out||{})[me.id]||0,r=await place();if(p>0)burst(document.body);
-  put('<div class="big">'+(p>0?'🎉':'😅')+'</div><p>'+(p>0?'Richtig! <b>+'+p+'</b> Punkte':'Leider keine Punkte')+'</p><p>Platz <b>'+r.rank+'</b> von '+r.n+' · '+r.score+' Punkte</p>'+(d.fact?'<div class="fact"><b>💡 Wusstest du schon?</b>'+esc(d.fact)+'</div>':''));
+  const p=(d.out||{})[me.id]||0,r=await place();if(tok!==rt)return;if(p>0)burst(document.body);
+  const E=d.est&&d.est[me.id],u=d.unit?' '+esc(d.unit):'',f=n=>(+n).toLocaleString('de-DE',{maximumFractionDigits:2});
+  put('<div class="big">'+(p>0?'🎉':'😅')+'</div><p>'+(p>0?(d.est?'<b>+'+p+'</b> Punkte':'Richtig! <b>+'+p+'</b> Punkte'):'Leider keine Punkte')+'</p>'+(E?'<p class="est">Dein Tipp: <b>'+f(E[0])+u+'</b><br>'+(E[1]===0?'🎯 Genau getroffen!':'Du lagst <b>'+f(E[1])+u+'</b> daneben')+'</p>':'')+'<p>Platz <b>'+r.rank+'</b> von '+r.n+' · '+r.score+' Punkte</p>'+(d.fact?'<div class="fact"><b>💡 Wusstest du schon?</b>'+esc(d.fact)+'</div>':''));
  }else if(g.phase==='ranking'||g.phase==='final'){
-  const r=await place();
+  const r=await place();if(tok!==rt)return;
   put('<div class="big">'+(g.phase==='final'?'🏆':'🏅')+'</div><p>'+(g.phase==='final'?'Endstand':'Zwischenstand')+'</p><p>Du bist auf Platz <b>'+r.rank+'</b> von '+r.n+'<br>'+r.score+' Punkte</p>');
- }else put('<div class="big">'+me.icon+'</div><p>Hallo <b>'+esc(me.name)+'</b>!<br>Schau auf den Beamer – gleich geht’s los.</p>');
+ }else if(d.slide)put('<div class="big">📜</div><p>'+(d.title?'<b>'+esc(d.title)+'</b><br>':'')+'Schau auf den Beamer –<br>gleich geht’s los.</p>');
+ else put('<div class="big">'+me.icon+'</div><p>Hallo <b>'+esc(me.name)+'</b>!<br>Schau auf den Beamer – gleich geht’s los.</p>');
 }
 
 (async()=>{
  if(me){const r=await sb.from('players').select('id').eq('id',me.id).maybeSingle();if(!r.data){me=null;localStorage.removeItem('me61')}}
  const r=await sb.from('game').select('*').eq('id',1).single();if(r.data)g=r.data;
- sb.channel('g').on('postgres_changes',{event:'*',schema:'public',table:'game'},p=>{g=p.new;render()}).subscribe();
+ const same=x=>x&&JSON.stringify([x.phase,x.data])===JSON.stringify([g.phase,g.data]);
+ sb.channel('g').on('postgres_changes',{event:'*',schema:'public',table:'game'},p=>{if(same(p.new))return;g=p.new;render()}).subscribe();
  render();
+ /* Sicherheitsnetz, falls die Live-Verbindung hängt: alle 4 s nachsehen */
+ setInterval(async()=>{if(document.hidden)return;const r=await sb.from('game').select('*').eq('id',1).single();if(r.data&&!same(r.data)){g=r.data;render()}},4000);
 })();
 </script></body></html>

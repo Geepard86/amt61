@@ -108,3 +108,24 @@ body:has(#app.qm){height:100dvh;overflow:hidden;padding:0 8px}
 .fact{margin-top:18px;font-size:34px;line-height:1.3;color:var(--ink);background:linear-gradient(160deg,var(--par),var(--par2));border:4px solid #8a5a1c;border-left:14px solid var(--gold);border-radius:18px;padding:16px 26px;box-shadow:0 8px 24px #0008;animation:rise .7s .6s both;max-height:220px;overflow:hidden}
 .fact b{display:block;font-size:.75em;color:#8a5a1c;margin-bottom:4px;letter-spacing:1px}
 #app .fact{font-size:16px;padding:12px 14px;border-width:3px;border-left-width:8px;margin-top:16px;max-height:none;text-align:left}
+
+/* Antworten erst nach der Vorlesezeit einblenden */
+.later{visibility:hidden}.later *{animation:none!important}
+/* Bild neben den Antworten */
+.qrow{flex:1 1 0;min-height:0;display:flex;gap:40px;margin-top:4px}
+.qrow.right{flex-direction:row-reverse}
+.qrow .ans{flex:1 1 0;min-width:0;display:flex;flex-direction:column;justify-content:center}
+.qrow .opts{grid-template-columns:1fr!important;gap:16px;margin:0}
+.qrow .opt{font-size:38px;padding:20px 28px}
+/* Schätzfragen: Tipp + Abstand */
+.rk small.dv{font-size:.72em;color:#8a5a1c;margin-left:18px;font-weight:500}
+#app .est{margin-top:10px;font-size:17px}
+/* Folien / Erklärseiten */
+.slide{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:30px;min-height:0}
+.slide h2{font-size:84px;margin:0}
+.slide .stx{font-size:46px;line-height:1.35;color:var(--ink);background:linear-gradient(160deg,var(--par),var(--par2));border:6px double #8a5a1c;border-radius:22px;padding:30px 50px;max-width:1500px;box-shadow:0 10px 30px #000a;animation:rise .7s .2s both}
+.slide .simg{max-height:440px;max-width:1300px;border-radius:14px;border:6px double #8a5a1c;box-shadow:0 14px 40px #000b;animation:pinSoft 1.2s .3s both;min-height:0}
+/* Handy: Warten auf Antworten */
+#app .wq{font-size:20px}
+.pulse{animation:hot 1.4s infinite}
+.qrow #md{flex:1.4 1 0;min-width:0;min-height:0;margin:0}
